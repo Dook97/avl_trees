@@ -1,5 +1,5 @@
-#ifndef avl_guard_8a0aaa8e0dd0b46c5828e9450956b6576424bd98
-#define avl_guard_8a0aaa8e0dd0b46c5828e9450956b6576424bd98
+#ifndef avl_guard_3666e1d4b12de3894af37e95950d35fa533fadb5ec91810da57de2f1b22a1f60
+#define avl_guard_3666e1d4b12de3894af37e95950d35fa533fadb5ec91810da57de2f1b22a1f60
 
 #include <stdint.h>
 #include <stddef.h>
@@ -24,8 +24,8 @@ static avl_node_t **choose_son(uint32_t key, avl_node_t *node) {
 	return (key < node->key) ? &node->left_son : &node->right_son;
 }
 
-/* return value: 1 if node with given key was found otherwise 0
- * out will point to father's pointer to the node with given key if such exists
+/* returns 1 if node with given key was found otherwise 0
+ * out will point to father's pointer to node with given key if such exists
  * if it doesn't it will point to father's pointer to last node visited by the 'find' operation
  */
 static int avl_find_getaddr(avl_key_t key, avl_root_t *root, avl_node_t ***out) {
@@ -83,11 +83,37 @@ static avl_node_t **get_min_node(avl_node_t *root) {
 	return min;
 }
 
+/* AVL edge rotation
+ *     |           |
+ *     y           x
+ *    / \         / \
+ *   x   C  <->  A   y
+ *  / \             / \
+ * A   B           B   C
+ * it is presumed that x and y are non-null
+ * x,y represent nodes while A,B,C represent (possibly empty) subtrees
+ */
+static void rotate(avl_node_t **father, int left_to_right) {
+	avl_node_t **ptr_to_son = left_to_right ? &(*father)->left_son : &(*father)->right_son;
+	avl_node_t *son = *ptr_to_son;
+	avl_node_t **Bnode = left_to_right ? &son->right_son : &son->left_son;
+
+	/* make B son of y */
+	if (*Bnode != NULL)
+		(*Bnode)->father = *father;
+	*ptr_to_son = *Bnode;
+
+	/* move x to top */
+	son->father = (*father)->father;
+	*Bnode = *father;
+	*father = son;
+}
+
 /* --- PUBLIC FUNCTIONS --------------------------------------- */
 
-/* return value: 1 if node with given key was found otherwise 0
+/* returns 1 if node with given key was found otherwise 0
  * out will point to node with given key if such exists
- * if it doesn't it will point to last node visited by the 'find' operation
+ * if it doesn't it will point to last node visited by the 'find' operation (use NULL to discard)
  */
 int avl_find(avl_key_t key, avl_root_t *root, avl_node_t **out) {
 	avl_node_t **out_local;
@@ -113,6 +139,7 @@ int avl_insert(avl_node_t *new_node, avl_root_t *root) {
 
 /* if there is no node with given key, returns 1
  * otherwise deletes the appropriate node and returns 0
+ * pointer to deleted node is stored in the deleted variable (use NULL to discard)
  */
 int avl_delete(avl_key_t key, avl_root_t *root, avl_node_t **deleted) {
 	avl_node_t **ptr_to_son;
@@ -133,7 +160,7 @@ int avl_delete(avl_key_t key, avl_root_t *root, avl_node_t **deleted) {
 	return 0;
 }
 
-/* --- DEBUG STUFF -------------------------------------------- */
+/* --- DEBUG -------------------------------------------------- */
 
 void avl_enumerate(avl_node_t *root, int depth) {
 	if(!root) {
@@ -148,23 +175,16 @@ void avl_enumerate(avl_node_t *root, int depth) {
 int main() {
 	avl_node_t one, two, three, four, five, six;
 	avl_node_t *ptr_to_last;
-	one   = (avl_node_t){1};
-	four  = (avl_node_t){4};
-	three = (avl_node_t){3};
-	two   = (avl_node_t){2};
-	six   = (avl_node_t){6};
-	five  = (avl_node_t){5};
-	avl_root_t root = { .root_node = &four };
-
-	avl_insert(&one, &root);
-	avl_insert(&three, &root);
-	avl_insert(&two, &root);
-	avl_insert(&six, &root);
-	avl_insert(&five, &root);
+	two   = (avl_node_t){2,&four,&one,NULL};
+	four  = (avl_node_t){4,NULL,NULL,&two};
+	one   = (avl_node_t){1,&five,&three,&two};
+	five  = (avl_node_t){5,NULL,NULL,&one};
+	three = (avl_node_t){3,NULL,NULL,&one};
+	avl_root_t root = { .root_node = &two };
 
 	avl_enumerate(root.root_node, 1);
-	avl_delete(4, &root, NULL);
-	printf("\ndelete successfull\n\n");
+	printf("\nrotated\n\n");
+	rotate(&root.root_node, 0);
 	avl_enumerate(root.root_node, 1);
 }
 
