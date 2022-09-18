@@ -1,21 +1,6 @@
-#ifndef avl_guard_3666e1d4b12de3894af37e95950d35fa533fadb5ec91810da57de2f1b22a1f60
-#define avl_guard_3666e1d4b12de3894af37e95950d35fa533fadb5ec91810da57de2f1b22a1f60
-
 #include <stdint.h>
 #include <stddef.h>
-
-/* --- TYPES -------------------------------------------------- */
-
-typedef uint32_t avl_key_t;
-
-typedef struct avl_node {
-	avl_key_t key;
-	struct avl_node *left_son, *right_son, *father;
-} avl_node_t;
-
-typedef struct {
-	avl_node_t *root_node;
-} avl_root_t;
+#include "avl.h"
 
 /* --- INTERNAL FUNCTIONS ------------------------------------- */
 
@@ -26,7 +11,7 @@ static avl_node_t **choose_son(uint32_t key, avl_node_t *node) {
 
 /* returns 1 if node with given key was found otherwise 0
  * out will point to father's pointer to node with given key if such exists
- * if it doesn't it will point to father's pointer to last node visited by the 'find' operation
+ * if it doesn't it will point to father's pointer to last node visited by the find operation
  */
 static int avl_find_getaddr(avl_key_t key, avl_root_t *root, avl_node_t ***out) {
 	avl_node_t **current_node, **current_son;
@@ -78,7 +63,7 @@ static avl_node_t **get_min_node(avl_node_t *root) {
 	return min;
 }
 
-/* AVL edge rotation
+/* edge rotation
  *     |           |
  *     y           x
  *    / \         / \
@@ -109,7 +94,7 @@ static void rotate(avl_node_t **ynode, int left_to_right) {
 
 /* returns 1 if node with given key was found otherwise 0
  * out will point to node with given key if such exists (use out == NULL to discard)
- * if it doesn't it will point to last node visited by the 'find' operation
+ * if it doesn't it will point to last node visited by the find operation
  */
 int avl_find(avl_key_t key, avl_root_t *root, avl_node_t **out) {
 	avl_node_t **out_local;
@@ -128,6 +113,9 @@ int avl_insert(avl_node_t *new_node, avl_root_t *root) {
 		return 1;
 
 	new_node->father = father;
+	new_node->left_son = new_node->right_son = NULL;
+	new_node->sign = 0;
+
 	*((root->root_node == NULL) ? &root->root_node
 				    : choose_son(new_node->key, father)) = new_node;
 	return 0;
@@ -139,8 +127,10 @@ int avl_insert(avl_node_t *new_node, avl_root_t *root) {
  */
 int avl_delete(avl_key_t key, avl_root_t *root, avl_node_t **deleted) {
 	avl_node_t **ptr_to_son;
-	if (!avl_find_getaddr(key, root, &ptr_to_son))
+	if (!avl_find_getaddr(key, root, &ptr_to_son)) {
+		*deleted = NULL;
 		return 1;
+	}
 	avl_node_t *node = *ptr_to_son;
 
 	if (get_number_of_sons(node) < 2) {
@@ -184,5 +174,3 @@ int main() {
 
 	avl_enumerate(root.root_node, 1);
 }
-
-#endif
