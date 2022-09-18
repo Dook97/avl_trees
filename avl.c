@@ -2,10 +2,12 @@
 #include <stddef.h>
 #include "avl.h"
 
+#define ABS(x) (((x) > 0) ? (x) : -(x))
+
 /* --- INTERNAL FUNCTIONS ------------------------------------- */
 
 /* choose next node on the path to node with given key according to BST invariant */
-static avl_node_t **choose_son(uint32_t key, avl_node_t *node) {
+static avl_node_t **choose_son(avl_key_t key, avl_node_t *node) {
 	return (key < node->key) ? &node->left_son : &node->right_son;
 }
 
@@ -86,8 +88,52 @@ static void rotate(avl_node_t **ynode, int left_to_right) {
 
 	/* move x to top */
 	xnode->father = (*ynode)->father;
+	(*ynode)->father = xnode;
 	*Bnode = *ynode;
 	*ynode = xnode;
+}
+
+/* get pointer to father's pointer to node */
+static avl_node_t **get_fathers_ptr(avl_node_t *node, avl_root_t *root) {
+	if (node->father == NULL)
+		return &root->root_node;
+	return (node->father->left_son == node) ? &node->father->left_son : &node->father->right_son;
+}
+
+/* node is father of inserted node
+ * after a successful insert traverses the path upward, updates signs and
+ * carries out any necessary rotations
+ */
+static void balance_insert(avl_node_t *node, avl_root_t *root, int from_left) {
+	while (node != NULL) {
+		node->sign += (from_left ? -1 : +1);
+		if (node->sign == 0)
+			return;
+
+		avl_node_t *father = node->father;
+		int new_left = (father != NULL && node == father->left_son);
+
+		if (ABS(node->sign) == 2) {
+			avl_node_t **ptr_to_son = from_left ? &node->left_son : &node->right_son;
+			avl_node_t *grandson = from_left ? (*ptr_to_son)->right_son : (*ptr_to_son)->left_son;
+			int modifier = -(!!from_left);
+
+			if (ABS(node->sign + (*ptr_to_son)->sign) == 3) {
+				node->sign = (*ptr_to_son)->sign = 0;
+			} else {
+				node->sign = (grandson->sign == modifier) ? -modifier : 0;
+				(*ptr_to_son)->sign = (grandson->sign == -modifier) ? modifier : 0;
+				grandson->sign = 0;
+				rotate(ptr_to_son, !from_left);
+			}
+			rotate(get_fathers_ptr(node, root), from_left);
+
+			return;
+		}
+
+		from_left = new_left;
+		node = father;
+	}
 }
 
 /* --- PUBLIC FUNCTIONS --------------------------------------- */
@@ -118,6 +164,10 @@ int avl_insert(avl_node_t *new_node, avl_root_t *root) {
 
 	*((root->root_node == NULL) ? &root->root_node
 				    : choose_son(new_node->key, father)) = new_node;
+
+	if (father != NULL)
+		balance_insert(father, root, new_node->key < father->key);
+
 	return 0;
 }
 
@@ -166,11 +216,16 @@ int main() {
 	srandom(time(NULL));
 
 	avl_root_t root = { .root_node = NULL };
-	avl_node_t nodes[5];
-	for (int i = 0; i < 5; ++i) {
-		nodes[i] = (avl_node_t){random() % 100};
-		avl_insert(nodes + i, &root);
-	}
 
+	avl_node_t nodes[10];
+
+	for (int i = 0; i < sizeof(nodes) / sizeof(avl_node_t); ++i) {
+		nodes[i] = (avl_node_t){random()%100};
+		avl_insert(&nodes[i], &root);
+	}
 	avl_enumerate(root.root_node, 1);
+
+
+	for (int i = 0; i < 10; ++i)
+		printf("%-2d %d\n", nodes[i].key, nodes[i].sign);
 }
