@@ -2,7 +2,10 @@
 #include <stddef.h>
 #include "avl.h"
 
-#define ABS(x) (((x) > 0) ? (x) : -(x))
+/* --- MACROS ------------------------------------------------- */
+
+#define ABS(x)		(((x) >  0)  ? (x) : -(x))
+#define MAX(x, y)	(((x) > (y)) ? (x) :  (y))
 
 /* --- INTERNAL FUNCTIONS ------------------------------------- */
 
@@ -32,6 +35,8 @@ static int avl_find_getaddr(avl_key_t key, avl_root_t *root, avl_node_t ***out) 
  * arguments are pointers to fathers' pointers to the nodes
  */
 static void replace_node(avl_node_t **replaced, avl_node_t **replacement) {
+	(*replacement)->sign = (*replaced)->sign;
+
 	if ((*replaced)->left_son != NULL)
 		(*replaced)->left_son->father = *replacement;
 	if ((*replaced)->right_son != NULL)
@@ -41,12 +46,11 @@ static void replace_node(avl_node_t **replaced, avl_node_t **replacement) {
 
 	avl_node_t *temp = (*replacement)->right_son;
 
-	(*replacement)->left_son = (*replaced)->left_son;
+	(*replacement)->left_son  = (*replaced)->left_son;
 	(*replacement)->right_son = (*replaced)->right_son;
 
 	*replaced = *replacement;
 
-	/* exchange pointer to replacement for pointer to it's right son in it's original father */
 	*replacement = temp;
 }
 
@@ -79,17 +83,28 @@ static avl_node_t **get_min_node(avl_node_t *root) {
 static void rotate(avl_node_t **ynode, int left_to_right) {
 	avl_node_t **ptr_to_x = left_to_right ? &(*ynode)->left_son : &(*ynode)->right_son;
 	avl_node_t *xnode = *ptr_to_x;
-	avl_node_t **Bnode = left_to_right ? &xnode->right_son : &xnode->left_son;
+	avl_node_t **bnode = left_to_right ? &xnode->right_son : &xnode->left_son;
 
-	/* make B son of y */
-	if (*Bnode != NULL)
-		(*Bnode)->father = *ynode;
-	*ptr_to_x = *Bnode;
+	/* update signs */
+	int aheight, bheight;
+	aheight = bheight = (left_to_right ? -(*ynode)->sign : (*ynode)->sign) - 1;
+	if (xnode->sign < 0) {
+		bheight = aheight + xnode->sign;
+	} else {
+		aheight = bheight - xnode->sign;
+	}
+	(*ynode)->sign = left_to_right ? -bheight : aheight;
+	xnode->sign    = left_to_right ?  MAX(bheight, 0) - aheight + 1
+				       : -MAX(aheight, 0) + bheight - 1;
+	/* make b son of y */
+	if (*bnode != NULL)
+		(*bnode)->father = *ynode;
+	*ptr_to_x = *bnode;
 
 	/* move x to top */
 	xnode->father = (*ynode)->father;
 	(*ynode)->father = xnode;
-	*Bnode = *ynode;
+	*bnode = *ynode;
 	*ynode = xnode;
 }
 
@@ -115,17 +130,8 @@ static void balance_insert(avl_node_t *node, avl_root_t *root, int from_left) {
 
 		if (ABS(node->sign) == 2) {
 			avl_node_t **ptr_to_son = from_left ? &node->left_son : &node->right_son;
-			avl_node_t *grandson = from_left ? (*ptr_to_son)->right_son : (*ptr_to_son)->left_son;
-			int modifier = -(!!from_left);
-
-			if (ABS(node->sign + (*ptr_to_son)->sign) == 3) {
-				node->sign = (*ptr_to_son)->sign = 0;
-			} else {
-				node->sign = (grandson->sign == modifier) ? -modifier : 0;
-				(*ptr_to_son)->sign = (grandson->sign == -modifier) ? modifier : 0;
-				grandson->sign = 0;
+			if (ABS(node->sign + (*ptr_to_son)->sign) == 1)
 				rotate(ptr_to_son, !from_left);
-			}
 			rotate(get_fathers_ptr(node, root), from_left);
 
 			return;
@@ -164,7 +170,6 @@ int avl_insert(avl_node_t *new_node, avl_root_t *root) {
 
 	*((root->root_node == NULL) ? &root->root_node
 				    : choose_son(new_node->key, father)) = new_node;
-
 	if (father != NULL)
 		balance_insert(father, root, new_node->key < father->key);
 
@@ -177,12 +182,10 @@ int avl_insert(avl_node_t *new_node, avl_root_t *root) {
  */
 int avl_delete(avl_key_t key, avl_root_t *root, avl_node_t **deleted) {
 	avl_node_t **ptr_to_son;
-	if (!avl_find_getaddr(key, root, &ptr_to_son)) {
-		*deleted = NULL;
+	if (!avl_find_getaddr(key, root, &ptr_to_son))
 		return 1;
-	}
-	avl_node_t *node = *ptr_to_son;
 
+	avl_node_t *node = *ptr_to_son;
 	if (get_number_of_sons(node) < 2) {
 		*ptr_to_son = (node->left_son != NULL) ? node->left_son : node->right_son;
 	} else {
@@ -216,16 +219,26 @@ int main() {
 	srandom(time(NULL));
 
 	avl_root_t root = { .root_node = NULL };
-
 	avl_node_t nodes[10];
-
 	for (int i = 0; i < sizeof(nodes) / sizeof(avl_node_t); ++i) {
-		nodes[i] = (avl_node_t){random()%100};
+		nodes[i] = (avl_node_t){random() % 100};
 		avl_insert(&nodes[i], &root);
 	}
 	avl_enumerate(root.root_node, 1);
 
+	puts("");
+	for (int i = 0; i < sizeof(nodes) / sizeof(avl_node_t); ++i)
+		printf("key: %-2d    sign: %2d\n", nodes[i].key, nodes[i].sign);
 
-	for (int i = 0; i < 10; ++i)
-		printf("%-2d %d\n", nodes[i].key, nodes[i].sign);
+	avl_delete(nodes[0].key, &root, NULL);
+	/* avl_delete(nodes[1].key, &root, NULL); */
+	/* avl_delete(nodes[2].key, &root, NULL); */
+	/* avl_delete(nodes[3].key, &root, NULL); */
+	/* avl_delete(nodes[4].key, &root, NULL); */
+
+	avl_enumerate(root.root_node, 1);
+
+	puts("");
+	for (int i = 0; i < sizeof(nodes) / sizeof(avl_node_t); ++i)
+		printf("key: %-2d    sign: %2d\n", nodes[i].key, nodes[i].sign);
 }
