@@ -1,6 +1,9 @@
 #ifndef avl_guard_3666e1d4b12de3894af37e95950d35fa533fadb5ec91810da57de2f1b22a1f60
 #define avl_guard_3666e1d4b12de3894af37e95950d35fa533fadb5ec91810da57de2f1b22a1f60
 
+#include <stdint.h>
+#include <stddef.h>
+
 /* --- TYPES -------------------------------------------------- */
 
 typedef uint32_t avl_key_t;
