@@ -20,21 +20,13 @@ typedef struct {
 
 /* --- FUNCTIONS ---------------------------------------------- */
 
-/* returns 1 if node with given key was found otherwise 0
- * out will point to node with given key if such exists (use out == NULL to discard)
- * if it doesn't it will point to last node visited by the find operation
- */
-int avl_find(avl_key_t key, avl_root_t *root, avl_node_t **out);
+/* returns pointer to node with given key or NULL if it wasn't found */
+avl_node_t *avl_find(avl_key_t key, avl_root_t *root);
 
-/* if there is a node with key equal to that of new_node returns 1
- * otherwise inserts new_node and returns 0
- */
-int avl_insert(avl_node_t *new_node, avl_root_t *root);
+/* returns pointer to inserted node or NULL if a node with given key was already in the structure */
+avl_node_t *avl_insert(avl_node_t *new_node, avl_root_t *root);
 
-/* if there is no node with given key, returns 1
- * otherwise deletes the appropriate node and returns 0
- * pointer to deleted node is stored in the deleted variable (use NULL to discard)
- */
-int avl_delete(avl_key_t key, avl_root_t *root, avl_node_t **deleted);
+/* returns pointer to deleted node or NULL if it wasn't found */
+avl_node_t *avl_delete(avl_key_t key, avl_root_t *root);
 
 #endif

@@ -139,65 +139,52 @@ static void balance(avl_node_t *node, avl_root_t *root, int from_left, int after
 
 /* --- PUBLIC FUNCTIONS --------------------------------------- */
 
-/* returns 1 if node with given key was found otherwise 0
- * out will point to node with given key if such exists (use out == NULL to discard)
- * if it doesn't it will point to last node visited by the find operation
- */
-int avl_find(avl_key_t key, avl_root_t *root, avl_node_t **out) {
-	avl_node_t **out_local;
-	int ret = avl_find_getaddr(key, root, &out_local);
-	if (out != NULL)
-		*out = *out_local;
-	return ret;
+/* returns pointer to node with given key or NULL if it wasn't found */
+avl_node_t *avl_find(avl_key_t key, avl_root_t *root) {
+	avl_node_t **out;
+	return avl_find_getaddr(key, root, &out) ? *out : NULL;
 }
 
-/* if there is a node with key equal to that of new_node returns 1
- * otherwise inserts new_node and returns 0
- */
-int avl_insert(avl_node_t *new_node, avl_root_t *root) {
-	avl_node_t *father;
-	if (avl_find(new_node->key, root, &father))
-		return 1;
+/* returns pointer to inserted node or NULL if a node with given key was already in the structure */
+avl_node_t *avl_insert(avl_node_t *new_node, avl_root_t *root) {
+	avl_node_t **ptr2father, *father;
+	if (avl_find_getaddr(new_node->key, root, &ptr2father))
+		return NULL;
 
+	father = (ptr2father != NULL) ? *ptr2father : NULL;
 	new_node->father = father;
 	new_node->left_son = new_node->right_son = NULL;
 	new_node->sign = 0;
 
 	*((root->root_node == NULL) ? &root->root_node
 				    : choose_son(new_node->key, father)) = new_node;
-	if (father != NULL)
-		balance(father, root, new_node->key < father->key, 0);
 
-	return 0;
+	balance(father, root, father != NULL && new_node->key < father->key, 0);
+
+	return new_node;
 }
 
-/* if there is no node with given key, returns 1
- * otherwise deletes the appropriate node and returns 0
- * pointer to deleted node is stored in the deleted variable (use NULL to discard)
- */
-int avl_delete(avl_key_t key, avl_root_t *root, avl_node_t **deleted) {
-	avl_node_t **ptr_to_son;
-	if (!avl_find_getaddr(key, root, &ptr_to_son))
-		return 1;
+/* returns pointer to deleted node or NULL if it wasn't found */
+avl_node_t *avl_delete(avl_key_t key, avl_root_t *root) {
+	avl_node_t **son;
+	if (!avl_find_getaddr(key, root, &son))
+		return NULL;
 
-	avl_node_t *node = *ptr_to_son;
-	avl_node_t *balance_start = node->father;
-	int from_left = (node->father != NULL && node->father->left_son == node);
+	avl_node_t *balance_start, *node = *son;
+	int from_left;
 	if (!!node->left_son + !!node->right_son < 2) {
-		*ptr_to_son = (node->left_son != NULL) ? node->left_son : node->right_son;
-		if (*ptr_to_son != NULL)
-			(*ptr_to_son)->father = node->father;
+		balance_start = node->father;
+		from_left = (node->father != NULL && node->father->left_son == node);
+		*son = (node->left_son != NULL) ? node->left_son : node->right_son;
+		if (*son != NULL)
+			(*son)->father = node->father;
 	} else {
 		avl_node_t **min = get_min_node(node);
 		balance_start = ((*min)->father->key != key) ? (*min)->father : *min;
 		from_left = (balance_start->left_son == *min);
-		replace_node(ptr_to_son, min);
+		replace_node(son, min);
 	}
-	if (balance_start != NULL)
-		balance(balance_start, root, from_left, 1);
+	balance(balance_start, root, from_left, 1);
 
-	if (deleted != NULL)
-		*deleted = node;
-
-	return 0;
+	return node;
 }
