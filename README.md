@@ -17,7 +17,7 @@ Author: Jan Doskočil
 Here we create a new tree and some nodes which we also insert into the
 structure right away. Keys have the `uint32_t` type which is aliased to
 `avl_key_t`. If a node with given key is already in the structure insert does
-nothing and returns 1. Otherwise 0 is returned and the node is inserted.
+nothing and returns `NULL`. Otherwise pointer to the inserted node is returned.
 
 ```c
 avl_root_t root = { .root_node = NULL };
@@ -28,46 +28,35 @@ for (size_t i = 0; i < sizeof(nodes) / sizeof(nodes[0]); ++i) {
 }
 ```
 
-Delete's interface is similar to that of insert with one difference: memory
-managment in regards to the nodes is left to the user, which is why the delete
-function provides, through an output parameter, a pointer to the deleted node.
-`NULL` can be used as the third parameter in which case the pointer to the
-deleted node is discarded. If no node with given key is found 1 is returned,
-otherwise the node is deleted and zero returned.
+Memory management in regards to the nodes is left to the user, which is why the
+delete function returns a pointer to the deleted node. If no node with given
+key is found `NULL` is returned.
 
 ```c
 avl_key_t key_of_node_to_delete = 5;
-avl_node_t *deleted;
-avl_delete(key_of_node_to_delete, &root, &deleted);
+avl_node_t *deleted = avl_delete(key_of_node_to_delete, &root, &deleted);
 /* now you can free your memory */
-free(deleted);
+if (deleted != NULL)
+	free(deleted);
 ```
 
-Find again shares the same interface. It returns 1 if node with given key was
-found, otherwise 0. The third parameter again provides a pointer to the
-searched-for node. If the node isn't present in the structure the pointer !=
-`NULL` as might be expected, but rather it points to last node visited during the
-search operation. Again a `NULL` can be used as the third parameter to discard
-the pointer.
+Find shares the same interface. It returns pointer to the node with given key
+or `NULL`, if it wasn't found.
 
 ```c
 avl_key_t key_of_node_to_find = 5;
-avl_node_t *found;
-avl_find(key_of_node_to_find, &root, &found);
+avl_node_t *found = avl_find(key_of_node_to_find, &root);
 ```
 
 ## Reader's manual
 
-First I'd advise you read up on the theory behind AVL trees if you don't
-understand that already. If you do, please read on!
-
-Besides the three public functions there are several internal functions. Below
-I will try to describe the function and interface of those that are non-trivial.
+Below I describe the non-trivial constructs in the source code.
 
 ### `avl_root_t`
 
-Represents the 'tree'. Holds a single pointer to the root of the tree. The root
-node does NOT store a pointer back to it.
+Represents the 'root' of the tree. Holds a single pointer to the root node. The
+root node does NOT store a pointer back to the structure as it's father is
+always `NULL`.
 
 ### `avl_node_t`
 
@@ -80,22 +69,17 @@ either -1, 0 or 1. It's equal to the difference: `depth(right_subtree) -
 depth(left_subtree)` though this is not how it's calculated or maintained in
 this implementation. More on that below.
 
-### `avl_key_t`
-
-Is an alias for `uint32_t`.
-
 ### `avl_find_getaddr`
 
 Is an internal implementation of the find operation. It recieves key of the
-seeked node, pointer to the root struct and  a pointer to variable in which a
+seeked node, pointer to the root struct and  a pointer to a variable in which a
 pointer to father's pointer to the seeked node is stored.
 
 Having this pointer is very handy in several places, because it allows us to
 avoid dealing with root node edge cases and also having to figure out which of
 the two son pointers belongs to our node.
 
-Same as the public facing function it returns 1 if node with given key was
-found otherwise it returns 0.
+It returns 1 if node with given key was found otherwise 0.
 
 ### `rotate`
 
@@ -106,8 +90,8 @@ involved accordingly.
 It takes pointer to father's pointer to the node which is closer to root and a
 boolean which determines whether the rotation is left-to-right or the reverse.
 
-The double rotation operation is not explicitly implemented or even mentioned
-as it can be simulated by two calls to `rotate`.
+The double rotation operation is not explicitly implemented as it can be
+simulated by two calls to `rotate`.
 
 ### `balance`
 
@@ -164,15 +148,6 @@ Sets us up for the next node which needs balancing and sign-updating.
 The loop ends either with one of the two `return`s or when we finish with the
 root node, whose father pointer is always `NULL`.
 
-### `avl_find`
-
-Just a more friendly interface to the internal `avl_find_getaddr` function. It
-is described in the User's manual.
-
-### `avl_insert`
-
-Described in the User's manual. The implementation is straightforward.
-
 ### `avl_delete`
 
 Interface is described in the User's manual.
@@ -184,12 +159,6 @@ under `node`.
 
 `from_left` informs which son was deleted - left or right. This is needed for
 the `balance` function.
-
-```c
-!!node->left_son + !!node->right_son
-```
-
-This gives the number of non-`NULL` sons of node.
 
 `replace_node` is just a readability measure. It hides all the tedious
 reorganizing of pointers which occurs when we wish to delete a node with two
