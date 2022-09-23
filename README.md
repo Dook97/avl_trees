@@ -34,7 +34,7 @@ key is found `NULL` is returned.
 
 ```c
 avl_key_t key_of_node_to_delete = 5;
-avl_node_t *deleted = avl_delete(key_of_node_to_delete, &root, &deleted);
+avl_node_t *deleted = avl_delete(key_of_node_to_delete, &root);
 /* now you can free your memory */
 if (deleted != NULL)
 	free(deleted);

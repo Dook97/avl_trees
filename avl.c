@@ -110,7 +110,8 @@ static avl_node_t **get_fathers_ptr(avl_node_t *node, avl_root_t *root) {
 }
 
 /* node points to father of deleted/inserted node
- * after a successful delete/insert traverses the path upward and carries out any necessary rotations
+ * after a successful delete/insert traverses the path upward, updates signs
+ * and carries out any necessary rotations
  */
 static void balance(avl_node_t *node, avl_root_t *root, int from_left, int after_delete) {
 	while (node != NULL) {
@@ -135,6 +136,11 @@ static void balance(avl_node_t *node, avl_root_t *root, int from_left, int after
 		from_left = new_left;
 		node = father;
 	}
+}
+
+/* returns number of non-NULL sons of node */
+static int get_number_of_sons(avl_node_t *node) {
+	return !!node->left_son + !!node->right_son;
 }
 
 /* --- PUBLIC FUNCTIONS --------------------------------------- */
@@ -166,13 +172,13 @@ avl_node_t *avl_insert(avl_node_t *new_node, avl_root_t *root) {
 
 /* returns pointer to deleted node or NULL if it wasn't found */
 avl_node_t *avl_delete(avl_key_t key, avl_root_t *root) {
-	avl_node_t **son;
+	avl_node_t **son, *node, *balance_start;
 	if (!avl_find_getaddr(key, root, &son))
 		return NULL;
 
-	avl_node_t *balance_start, *node = *son;
+	node = *son;
 	int from_left;
-	if (!!node->left_son + !!node->right_son < 2) {
+	if (get_number_of_sons(node) < 2) {
 		balance_start = node->father;
 		from_left = (node->father != NULL && node->father->left_son == node);
 		*son = (node->left_son != NULL) ? node->left_son : node->right_son;
