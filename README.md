@@ -7,8 +7,7 @@ wrote it during my first year of uni for an algorithms and data structures
 class.
 
 If you wish to try it out please see User's manual down below. If you wish to
-read the source code see Reader's manual under that (or don't if you're feeling
-brave 😁).
+read the source code see Reader's manual under that.
 
 Author: Jan Doskočil
 
@@ -16,8 +15,9 @@ Author: Jan Doskočil
 
 Here we create a new tree and some nodes which we also insert into the
 structure right away. Keys have the `uint32_t` type which is aliased to
-`avl_key_t`. If a node with given key is already in the structure insert does
-nothing and returns `NULL`. Otherwise pointer to the inserted node is returned.
+`avl_key_t`. If a node with given key is already in the structure it will be
+replaced by the new node and a pointer to the replaced node will be returned.
+Otherwise new node is inserted and `NULL` returned.
 
 ```c
 avl_root_t root = { .root_node = NULL };

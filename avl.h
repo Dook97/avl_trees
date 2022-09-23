@@ -23,7 +23,9 @@ typedef struct {
 /* returns pointer to node with given key or NULL if it wasn't found */
 avl_node_t *avl_find(avl_key_t key, avl_root_t *root);
 
-/* returns pointer to inserted node or NULL if a node with given key was already in the structure */
+/* if a node with given key already existed in the tree it is replaced by
+ * new_node and the pointer to it is returned, otherwise the node is inserted
+ * and NULL is returned */
 avl_node_t *avl_insert(avl_node_t *new_node, avl_root_t *root);
 
 /* returns pointer to deleted node or NULL if it wasn't found */

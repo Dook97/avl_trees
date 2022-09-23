@@ -14,8 +14,7 @@ static avl_node_t **choose_son(avl_key_t key, avl_node_t *node) {
 
 /* returns 1 if node with given key was found otherwise 0
  * out will point to father's pointer to node with given key if such exists
- * if it doesn't it will point to father's pointer to last node visited by the find operation
- */
+ * if it doesn't it will point to father's pointer to last node visited by the find operation */
 static int avl_find_getaddr(avl_key_t key, avl_root_t *root, avl_node_t ***out) {
 	avl_node_t **current_node, **current_son;
 	current_node = current_son = &root->root_node;
@@ -30,8 +29,7 @@ static int avl_find_getaddr(avl_key_t key, avl_root_t *root, avl_node_t ***out) 
 /* used exclusively inside avl_delete - DO NOT USE ELSEWHERE
  * handles changes of pointers between node with two sons and it's replacement
  * such deleted node is replaced with minimal node from it's right subtree
- * arguments are pointers to fathers' pointers to the nodes
- */
+ * arguments are pointers to fathers' pointers to the nodes */
 static void replace_node(avl_node_t **replaced, avl_node_t **replacement) {
 	(*replacement)->sign = (*replaced)->sign;
 
@@ -54,8 +52,7 @@ static void replace_node(avl_node_t **replaced, avl_node_t **replacement) {
 }
 
 /* returns pointer to father's pointer to minimal node in right subtree of root
- * expects right son of root to be non-null
- */
+ * expects right son of root to be non-null */
 static avl_node_t **get_min_node(avl_node_t *node) {
 	avl_node_t **min = &node->right_son;
 	while ((*min)->left_son != NULL)
@@ -72,8 +69,7 @@ static avl_node_t **get_min_node(avl_node_t *node) {
  * A   B           B   C
  * it is presumed that x and y are non-null
  * x, y represent nodes while A, B, C represent (possibly empty) subtrees
- * arguments are named according to the left part of the diagram
- */
+ * arguments are named according to the left part of the diagram */
 static void rotate(avl_node_t **ynode, int left_to_right) {
 	avl_node_t **ptr_to_x = left_to_right ? &(*ynode)->left_son : &(*ynode)->right_son;
 	avl_node_t *xnode = *ptr_to_x;
@@ -111,8 +107,7 @@ static avl_node_t **get_fathers_ptr(avl_node_t *node, avl_root_t *root) {
 
 /* node points to father of deleted/inserted node
  * after a successful delete/insert traverses the path upward, updates signs
- * and carries out any necessary rotations
- */
+ * and carries out any necessary rotations */
 static void balance(avl_node_t *node, avl_root_t *root, int from_left, int after_delete) {
 	while (node != NULL) {
 		int newbool = after_delete ? from_left : !from_left;
@@ -143,31 +138,54 @@ static int get_number_of_sons(avl_node_t *node) {
 	return !!node->left_son + !!node->right_son;
 }
 
+/* replace a node by a newly inserted one */
+static void replace_by_new(avl_node_t **replaced, avl_node_t *replacement) {
+	replacement->sign = (*replaced)->sign;
+
+	if ((*replaced)->left_son != NULL)
+		(*replaced)->left_son->father = replacement;
+	if ((*replaced)->right_son != NULL)
+		(*replaced)->right_son->father = replacement;
+
+	replacement->left_son = (*replaced)->left_son;
+	replacement->right_son = (*replaced)->right_son;
+	replacement->father = (*replaced)->father;
+
+	*replaced = replacement;
+}
+
 /* --- PUBLIC FUNCTIONS --------------------------------------- */
 
 /* returns pointer to node with given key or NULL if it wasn't found */
 avl_node_t *avl_find(avl_key_t key, avl_root_t *root) {
 	avl_node_t **out;
-	return avl_find_getaddr(key, root, &out) ? *out : NULL;
+	avl_find_getaddr(key, root, &out);
+	return *out;
 }
 
-/* returns pointer to inserted node or NULL if a node with given key was already in the structure */
+/* if a node with given key already existed in the tree it is replaced by
+ * new_node and the pointer to it is returned, otherwise the node is inserted
+ * and NULL is returned */
 avl_node_t *avl_insert(avl_node_t *new_node, avl_root_t *root) {
 	avl_node_t **ptr2father, *father;
-	if (avl_find_getaddr(new_node->key, root, &ptr2father))
-		return NULL;
+	int found = avl_find_getaddr(new_node->key, root, &ptr2father);
+	father = *ptr2father;
 
-	father = (ptr2father != NULL) ? *ptr2father : NULL;
+	if (found) {
+		replace_by_new(ptr2father, new_node);
+		return father;
+	}
+
 	new_node->father = father;
 	new_node->left_son = new_node->right_son = NULL;
 	new_node->sign = 0;
 
 	*((root->root_node == NULL) ? &root->root_node
 				    : choose_son(new_node->key, father)) = new_node;
+	if (father != NULL)
+		balance(father, root, new_node->key < father->key, 0);
 
-	balance(father, root, father != NULL && new_node->key < father->key, 0);
-
-	return new_node;
+	return NULL;
 }
 
 /* returns pointer to deleted node or NULL if it wasn't found */
