@@ -1,4 +1,6 @@
 #include "avl.h"
+#include <stddef.h>
+#include <stdbool.h>
 
 /* --- MACROS ------------------------------------------------- */
 
@@ -12,10 +14,10 @@ static avl_node_t **choose_son(avl_key_t key, avl_node_t *node) {
 	return (key < node->key) ? &node->left_son : &node->right_son;
 }
 
-/* returns 1 if node with given key was found otherwise 0
+/* returns true if node with given key was found otherwise false
  * out will point to father's pointer to node with given key if such exists
  * if it doesn't it will point to father's pointer to last node visited by the find operation */
-static int avl_find_getaddr(avl_key_t key, avl_root_t *root, avl_node_t ***out) {
+static bool avl_find_getaddr(avl_key_t key, avl_root_t *root, avl_node_t ***out) {
 	avl_node_t **current_node, **current_son;
 	current_node = current_son = &root->root_node;
 	while (*current_son != NULL && (*current_node)->key != key) {
@@ -70,7 +72,7 @@ static avl_node_t **get_min_node(avl_node_t *node) {
  * it is presumed that x and y are non-null
  * x, y represent nodes while A, B, C represent (possibly empty) subtrees
  * arguments are named according to the left part of the diagram */
-static void rotate(avl_node_t **ynode, int left_to_right) {
+static void rotate(avl_node_t **ynode, bool left_to_right) {
 	avl_node_t **ptr_to_x = left_to_right ? &(*ynode)->left_son : &(*ynode)->right_son;
 	avl_node_t *xnode = *ptr_to_x;
 	avl_node_t **bnode = left_to_right ? &xnode->right_son : &xnode->left_son;
@@ -108,15 +110,15 @@ static avl_node_t **get_fathers_ptr(avl_node_t *node, avl_root_t *root) {
 /* node points to father of deleted/inserted node
  * after a successful delete/insert traverses the path upward, updates signs
  * and carries out any necessary rotations */
-static void balance(avl_node_t *node, avl_root_t *root, int from_left, int after_delete) {
+static void balance(avl_node_t *node, avl_root_t *root, bool from_left, bool after_delete) {
 	while (node != NULL) {
-		int newbool = after_delete ? from_left : !from_left;
+		bool newbool = after_delete ^ !from_left;
 		node->sign += (newbool ? +1 : -1);
 		if (ABS(node->sign) == after_delete)
 			return;
 
 		avl_node_t *father = node->father;
-		int new_left = (father != NULL && node == father->left_son);
+		bool new_left = (father != NULL && node == father->left_son);
 
 		if (ABS(node->sign) == 2) {
 			avl_node_t **son = newbool ? &node->right_son : &node->left_son;
@@ -168,7 +170,7 @@ avl_node_t *avl_find(avl_key_t key, avl_root_t *root) {
  * and NULL is returned */
 avl_node_t *avl_insert(avl_node_t *new_node, avl_root_t *root) {
 	avl_node_t **ptr2father, *father;
-	int found = avl_find_getaddr(new_node->key, root, &ptr2father);
+	bool found = avl_find_getaddr(new_node->key, root, &ptr2father);
 	father = *ptr2father;
 
 	if (found) {
@@ -195,7 +197,7 @@ avl_node_t *avl_delete(avl_key_t key, avl_root_t *root) {
 		return NULL;
 
 	node = *son;
-	int from_left;
+	bool from_left;
 	if (get_number_of_sons(node) < 2) {
 		balance_start = node->father;
 		from_left = (node->father != NULL && node->father->left_son == node);
