@@ -7,6 +7,12 @@
 
 /* --- INTERNAL FUNCTIONS ------------------------------------- */
 
+/* a shortcut to compare two nodes via the user provided extractor and comparator functions */
+int avl_compare(avl_root_t *root, avl_node_t *node1, avl_node_t *node2) {
+	return (*((root)->comparator))((*((root)->extractor))(node1),
+				       (*((root)->extractor))(node2));
+}
+
 /* choose next node on the path to node with given key according to BST invariant */
 static avl_node_t **choose_son(avl_node_t *key_node, avl_node_t *node, avl_root_t *root) {
 	return (avl_compare(root, key_node, node) < 0) ? &node->left_son : &node->right_son;

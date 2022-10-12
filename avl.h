@@ -41,6 +41,9 @@ avl_node_t *avl_insert(avl_node_t *new_node, avl_root_t *root);
 /* returns pointer to deleted node or NULL if it wasn't found */
 avl_node_t *avl_delete(avl_node_t *key_node, avl_root_t *root);
 
+/* a shortcut to compare two nodes via the user provided extractor and comparator functions */
+int avl_compare(avl_root_t *root, avl_node_t *node1, avl_node_t *node2);
+
 /* --- MACROS ------------------------------------------------- */
 
 /* compute offset of a member in a struct */
@@ -57,12 +60,5 @@ avl_node_t *avl_delete(avl_node_t *key_node, avl_root_t *root);
 /* upcast from struct member to its wrapper struct */
 #define avl_getitem(ptr_to_avl_member, wrapper_type, avl_member_name) \
 	GET_WRAPPER_STRUCT(ptr_to_avl_member, wrapper_type, avl_member_name)
-
-#define avl_compare(_cmp_root, node1, node2) \
-	({ \
-		avl_root_t *__temp_root = _cmp_root; \
-		(*((__temp_root)->comparator))((*((__temp_root)->extractor))(node1), \
-					       (*((__temp_root)->extractor))(node2)); \
-	})
 
 #endif
