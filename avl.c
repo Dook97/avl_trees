@@ -173,15 +173,6 @@ int avl_compare(avl_root_t *root, avl_node_t *node1, avl_node_t *node2) {
 				     (*(root->extractor))(node2));
 }
 
-/* initialize the root of the tree */
-void avl_init_root(avl_root_t *root, extractor_t extractor, comparator_t comparator) {
-	*root = (avl_root_t){
-		.root_node = NULL,
-		.extractor = extractor,
-		.comparator = comparator
-	};
-}
-
 /* returns pointer to node with given key or NULL if it wasn't found */
 avl_node_t *avl_find(avl_node_t *key_node, avl_root_t *root) {
 	avl_node_t **out;
@@ -235,3 +226,24 @@ avl_node_t *avl_delete(avl_node_t *key_node, avl_root_t *root) {
 
 	return node;
 }
+
+avl_node_t *avl_getmin(avl_root_t *root) {
+	avl_node_t *out = root->root_node;
+	while (out->left_son != NULL)
+		out = out->left_son;
+	return out;
+}
+
+avl_node_t *avl_getmax(avl_root_t *root) {
+	avl_node_t *out = root->root_node;
+	while (out->right_son != NULL)
+		out = out->right_son;
+	return out;
+}
+
+/* avl_node_t *avl_next(avl_node_t *node) {
+	if (node->right_son != NULL)
+		return *get_min_node(node);
+	while (node->father != NULL && node == node->father->right_son)
+		node = node->father;
+} */
