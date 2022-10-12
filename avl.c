@@ -1,6 +1,4 @@
 #include "avl.h"
-#include <stddef.h>
-#include <stdbool.h>
 
 /* --- MACROS ------------------------------------------------- */
 
@@ -10,22 +8,22 @@
 /* --- INTERNAL FUNCTIONS ------------------------------------- */
 
 /* choose next node on the path to node with given key according to BST invariant */
-static avl_node_t **choose_son(avl_key_t key, avl_node_t *node) {
-	return (key < node->key) ? &node->left_son : &node->right_son;
+static avl_node_t **choose_son(avl_node_t *key_node, avl_node_t *node, avl_root_t *root) {
+	return (avl_compare(root, key_node, node) < 0) ? &node->left_son : &node->right_son;
 }
 
 /* returns true if node with given key was found otherwise false
  * out will point to father's pointer to node with given key if such exists
  * if it doesn't it will point to father's pointer to last node visited by the find operation */
-static bool avl_find_getaddr(avl_key_t key, avl_root_t *root, avl_node_t ***out) {
+static bool avl_find_getaddr(avl_node_t *key_node, avl_root_t *root, avl_node_t ***out) {
 	avl_node_t **current_node, **current_son;
 	current_node = current_son = &root->root_node;
-	while (*current_son != NULL && (*current_node)->key != key) {
+	while (*current_son != NULL && avl_compare(root, *current_node, key_node) != 0) {
 		current_node = current_son;
-		current_son  = choose_son(key, *current_node);
+		current_son  = choose_son(key_node, *current_node, root);
 	}
 	*out = current_node;
-	return *current_node != NULL && key == (*current_node)->key;
+	return *current_node != NULL && avl_compare(root, *current_node, key_node) == 0;
 }
 
 /* used exclusively inside avl_delete - DO NOT USE ELSEWHERE
@@ -159,9 +157,9 @@ static void replace_by_new(avl_node_t **replaced, avl_node_t *replacement) {
 /* --- PUBLIC FUNCTIONS --------------------------------------- */
 
 /* returns pointer to node with given key or NULL if it wasn't found */
-avl_node_t *avl_find(avl_key_t key, avl_root_t *root) {
+avl_node_t *avl_find(avl_node_t *key_node, avl_root_t *root) {
 	avl_node_t **out;
-	avl_find_getaddr(key, root, &out);
+	avl_find_getaddr(key_node, root, &out);
 	return *out;
 }
 
@@ -170,7 +168,7 @@ avl_node_t *avl_find(avl_key_t key, avl_root_t *root) {
  * and NULL is returned */
 avl_node_t *avl_insert(avl_node_t *new_node, avl_root_t *root) {
 	avl_node_t **ptr2father, *father;
-	bool found = avl_find_getaddr(new_node->key, root, &ptr2father);
+	bool found = avl_find_getaddr(new_node, root, &ptr2father);
 	father = *ptr2father;
 
 	if (found) {
@@ -183,17 +181,17 @@ avl_node_t *avl_insert(avl_node_t *new_node, avl_root_t *root) {
 	new_node->sign = 0;
 
 	*((root->root_node == NULL) ? &root->root_node
-				    : choose_son(new_node->key, father)) = new_node;
+				    : choose_son(new_node, father, root)) = new_node;
 	if (father != NULL)
-		balance(father, root, new_node->key < father->key, 0);
+		balance(father, root, avl_compare(root, new_node, father) < 0, 0);
 
 	return NULL;
 }
 
 /* returns pointer to deleted node or NULL if it wasn't found */
-avl_node_t *avl_delete(avl_key_t key, avl_root_t *root) {
+avl_node_t *avl_delete(avl_node_t *key_node, avl_root_t *root) {
 	avl_node_t **son, *node, *balance_start;
-	if (!avl_find_getaddr(key, root, &son))
+	if (!avl_find_getaddr(key_node, root, &son))
 		return NULL;
 
 	node = *son;
@@ -206,7 +204,7 @@ avl_node_t *avl_delete(avl_key_t key, avl_root_t *root) {
 			(*son)->father = node->father;
 	} else {
 		avl_node_t **min = get_min_node(node);
-		balance_start = ((*min)->father->key != key) ? (*min)->father : *min;
+		balance_start = (avl_compare(root, (*min)->father, key_node) != 0) ? (*min)->father : *min;
 		from_left = (balance_start->left_son == *min);
 		replace_node(son, min);
 	}
