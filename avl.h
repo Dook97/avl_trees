@@ -30,6 +30,12 @@ typedef struct {
 
 /* --- FUNCTIONS ---------------------------------------------- */
 
+/* a shortcut to compare two nodes via the user provided extractor and comparator functions */
+int avl_compare(avl_root_t *root, avl_node_t *node1, avl_node_t *node2);
+
+/* initialize the root of the tree */
+void avl_init_root(avl_root_t *root, extractor_t extractor, comparator_t comparator);
+
 /* returns pointer to node with given key or NULL if it wasn't found */
 avl_node_t *avl_find(avl_node_t *key_node, avl_root_t *root);
 
@@ -40,9 +46,6 @@ avl_node_t *avl_insert(avl_node_t *new_node, avl_root_t *root);
 
 /* returns pointer to deleted node or NULL if it wasn't found */
 avl_node_t *avl_delete(avl_node_t *key_node, avl_root_t *root);
-
-/* a shortcut to compare two nodes via the user provided extractor and comparator functions */
-int avl_compare(avl_root_t *root, avl_node_t *node1, avl_node_t *node2);
 
 /* --- MACROS ------------------------------------------------- */
 

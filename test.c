@@ -22,11 +22,8 @@ outer_t *extractor(avl_node_t *node) {
 int main() {
 	srandom(time(NULL));
 
-	avl_root_t root = {
-		.root_node = NULL,
-		.extractor = (extractor_t)extractor,
-		.comparator = (comparator_t)comparator
-	};
+	avl_root_t root;
+	avl_init_root(&root, (extractor_t)extractor, (comparator_t)comparator);
 
 	outer_t nodes[200000];
 

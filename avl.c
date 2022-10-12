@@ -7,12 +7,6 @@
 
 /* --- INTERNAL FUNCTIONS ------------------------------------- */
 
-/* a shortcut to compare two nodes via the user provided extractor and comparator functions */
-int avl_compare(avl_root_t *root, avl_node_t *node1, avl_node_t *node2) {
-	return (*((root)->comparator))((*((root)->extractor))(node1),
-				       (*((root)->extractor))(node2));
-}
-
 /* choose next node on the path to node with given key according to BST invariant */
 static avl_node_t **choose_son(avl_node_t *key_node, avl_node_t *node, avl_root_t *root) {
 	return (avl_compare(root, key_node, node) < 0) ? &node->left_son : &node->right_son;
@@ -160,7 +154,33 @@ static void replace_by_new(avl_node_t **replaced, avl_node_t *replacement) {
 	*replaced = replacement;
 }
 
+static void init_node(avl_node_t *node, avl_node_t *father) {
+	node->father = father;
+	node->left_son = node->right_son = NULL;
+	node->sign = 0;
+}
+
 /* --- PUBLIC FUNCTIONS --------------------------------------- */
+
+/* a shortcut to compare two nodes via the user provided extractor and comparator functions
+ *
+ * returns <0 if node1 < node2
+ * returns  0 if node1 = node2
+ * returns >0 if node1 > node2
+ */
+int avl_compare(avl_root_t *root, avl_node_t *node1, avl_node_t *node2) {
+	return (*(root->comparator))((*(root->extractor))(node1),
+				     (*(root->extractor))(node2));
+}
+
+/* initialize the root of the tree */
+void avl_init_root(avl_root_t *root, extractor_t extractor, comparator_t comparator) {
+	*root = (avl_root_t){
+		.root_node = NULL,
+		.extractor = extractor,
+		.comparator = comparator
+	};
+}
 
 /* returns pointer to node with given key or NULL if it wasn't found */
 avl_node_t *avl_find(avl_node_t *key_node, avl_root_t *root) {
@@ -182,14 +202,11 @@ avl_node_t *avl_insert(avl_node_t *new_node, avl_root_t *root) {
 		return father;
 	}
 
-	new_node->father = father;
-	new_node->left_son = new_node->right_son = NULL;
-	new_node->sign = 0;
-
+	init_node(new_node, father);
 	*((root->root_node == NULL) ? &root->root_node
 				    : choose_son(new_node, father, root)) = new_node;
 	if (father != NULL)
-		balance(father, root, avl_compare(root, new_node, father) < 0, 0);
+		balance(father, root, avl_compare(root, new_node, father) < 0, false);
 
 	return NULL;
 }
@@ -214,7 +231,7 @@ avl_node_t *avl_delete(avl_node_t *key_node, avl_root_t *root) {
 		from_left = (balance_start->left_son == *min);
 		replace_node(son, min);
 	}
-	balance(balance_start, root, from_left, 1);
+	balance(balance_start, root, from_left, true);
 
 	return node;
 }
