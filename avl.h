@@ -40,14 +40,17 @@ avl_node_t *avl_insert_impl(avl_node_t *new_node, avl_root_t *root);
 /* returns pointer to deleted node or NULL if it wasn't found */
 avl_node_t *avl_delete_impl(avl_node_t *key_node, avl_root_t *root);
 
-/* get minimal node as determined by the comparator function */
-avl_node_t *avl_getmin_impl(avl_root_t *root);
+/* get minimal node according to the ordering specified by the comparator function */
+avl_node_t *avl_min_impl(avl_root_t *root);
 
-/* get maximal node as determined by the comparator function */
-avl_node_t *avl_getmax_impl(avl_root_t *root);
+/* get maximal node according to the ordering specified by the comparator function */
+avl_node_t *avl_max_impl(avl_root_t *root);
 
 /* get next node according to the ordering specified by the comparator function */
 avl_node_t *avl_next_impl(avl_node_t *node);
+
+/* get prev node according to the ordering specified by the comparator function */
+avl_node_t *avl_prev_impl(avl_node_t *node);
 
 /* --- INTERNAL MACROS ---------------------------------------- */
 
@@ -110,16 +113,30 @@ avl_node_t *avl_next_impl(avl_node_t *node);
 		AVL_INVOKE_FUNCTION(__safe_root, avl_delete_impl, __safe_node, &__safe_root->AVL_EMBED_NAMING_CONVENTION); \
 	 })
 
-#define avl_getmin(root) \
+#define avl_min(root) \
 	({ \
 		__auto_type __safe_root = (root); \
-		AVL_INVOKE_FUNCTION(__safe_root, avl_getmin_impl, &__safe_root->AVL_EMBED_NAMING_CONVENTION); \
+		AVL_INVOKE_FUNCTION(__safe_root, avl_min_impl, &__safe_root->AVL_EMBED_NAMING_CONVENTION); \
 	})
 
-#define avl_getmax(root) \
+#define avl_max(root) \
 	({ \
 		__auto_type __safe_root = (root); \
-		AVL_INVOKE_FUNCTION(__safe_root, avl_getmax_impl, &__safe_root->AVL_EMBED_NAMING_CONVENTION); \
+		AVL_INVOKE_FUNCTION(__safe_root, avl_max_impl, &__safe_root->AVL_EMBED_NAMING_CONVENTION); \
+	})
+
+#define avl_next(node, root) \
+	({ \
+		avl_node_t *__safe_node = (node); \
+		__auto_type __safe_root = (root); \
+		AVL_INVOKE_FUNCTION(__safe_root, avl_next_impl, __safe_node); \
+	})
+
+#define avl_prev(node, root) \
+	({ \
+		avl_node_t *__safe_node = (node); \
+		__auto_type __safe_root = (root); \
+		AVL_INVOKE_FUNCTION(__safe_root, avl_prev_impl, __safe_node); \
 	})
 
 #endif

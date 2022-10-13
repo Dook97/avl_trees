@@ -233,23 +233,40 @@ avl_node_t *avl_delete_impl(avl_node_t *key_node, avl_root_t *root) {
 	return node;
 }
 
-avl_node_t *avl_getmin_impl(avl_root_t *root) {
+/* get minimal node according to the ordering specified by the comparator function */
+avl_node_t *avl_min_impl(avl_root_t *root) {
 	avl_node_t *out = root->root_node;
 	while (out->left_son != NULL)
 		out = out->left_son;
 	return out;
 }
 
-avl_node_t *avl_getmax_impl(avl_root_t *root) {
+/* get maximal node according to the ordering specified by the comparator function */
+avl_node_t *avl_max_impl(avl_root_t *root) {
 	avl_node_t *out = root->root_node;
 	while (out->right_son != NULL)
 		out = out->right_son;
 	return out;
 }
 
-/* avl_node_t *avl_next(avl_node_t *node) {
+/* get next node according to the ordering specified by the comparator function */
+avl_node_t *avl_next_impl(avl_node_t *node) {
 	if (node->right_son != NULL)
 		return *get_min_node(node);
 	while (node->father != NULL && node == node->father->right_son)
 		node = node->father;
-} */
+	return (node->father == NULL) ? NULL : node->father;
+}
+
+/* get prev node according to the ordering specified by the comparator function */
+avl_node_t *avl_prev_impl(avl_node_t *node) {
+	if (node->left_son != NULL) {
+		avl_node_t **min = &node->left_son;
+		while ((*min)->right_son != NULL)
+			min = &(*min)->right_son;
+		return *min;
+	}
+	while (node->father != NULL && node == node->father->left_son)
+		node = node->father;
+	return (node->father == NULL) ? NULL : node->father;
+}
