@@ -5,12 +5,14 @@
 #include <assert.h>
 #include <limits.h>
 
-#define arr_len(arr) (sizeof(arr)/sizeof(arr[0]))
+#define arr_len(arr) (sizeof(arr) / sizeof(arr[0]))
 
 typedef struct {
 	long num;
 	avl_node_t avl_node;
 } outer_t;
+
+AVL_DEFINE_ROOT(outer_root_t, outer_t);
 
 int comparator(outer_t *node1, outer_t *node2) {
 	if (node1->num == node2->num)
@@ -21,19 +23,20 @@ int comparator(outer_t *node1, outer_t *node2) {
 }
 
 outer_t *extractor(avl_node_t *node) {
-	return avl_getitem(node, outer_t, avl_node);
+	return AVL_GETITEM(node, outer_t, avl_node);
 }
 
 int main() {
 	srandom(time(NULL));
 
-	avl_root_t root = avl_newroot(extractor, comparator);
+	outer_root_t root = AVL_NEWROOT(outer_root_t, extractor, comparator);
 	outer_t nodes[200000];
 
 	long min, max;
 	for (int j = 0; j < 100; ++j) {
-		min = LONG_MAX;
 		max = LONG_MIN;
+		min = LONG_MAX;
+
 		for (size_t i = 0; i < arr_len(nodes); ++i) {
 			long rand = random();
 			if (rand < min)
@@ -41,21 +44,24 @@ int main() {
 			if (rand > max)
 				max = rand;
 			nodes[i].num = rand;
-			avl_node_t *out = avl_insert(&nodes[i].avl_node, &root);
-			assert((out == NULL || avl_compare(&root, out, &nodes[i].avl_node) == 0) && out != &nodes[i].avl_node);
-			assert(min == extractor(avl_getmin(&root))->num);
-			assert(max == extractor(avl_getmax(&root))->num);
+			outer_t *out = avl_insert(&nodes[i].avl_node, &root);
+			assert(out == NULL || (comparator(out, &nodes[i]) == 0 && out != &nodes[i]));
 		}
+
+		assert(min == avl_getmin(&root)->num);
+		assert(max == avl_getmax(&root)->num);
+
 		for (size_t i = 0; i < arr_len(nodes); ++i) {
-			avl_node_t *out = avl_find(&nodes[i].avl_node, &root);
-			assert(nodes[i].num == extractor(out)->num);
-			assert(out);
+			outer_t *out = avl_find(&nodes[i].avl_node, &root);
+			assert(nodes[i].num == out->num);
+			assert(out != NULL);
 		}
+
 		for (size_t i = 0; i < arr_len(nodes); ++i) {
-			avl_node_t *out = avl_delete(&nodes[i].avl_node, &root);
-			assert(out == NULL || out == &nodes[i].avl_node ||
-			       nodes[i].num == extractor(out)->num);
+			outer_t *out = avl_delete(&nodes[i].avl_node, &root);
+			assert(out == NULL || out == &nodes[i] || nodes[i].num == out->num);
 		}
+
 		printf("test %03d finished succesfully\n", j+1);
 	}
 	puts("all tests finished successfully");
