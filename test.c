@@ -49,15 +49,14 @@ int main() {
 		}
 
 		for (size_t i = 0; i < arr_len(nodes); ++i) {
-			// printf("%ld %ld\n", i, avl_next(&nodes[i].avl_node, &root)->num);
-			outer_t *out = avl_next(&nodes[i].avl_node, &root);
-			outer_t *_out = avl_prev(&nodes[i].avl_node, &root);
-			assert(out  == NULL || i + 1 ==  out->num);
-			assert(_out == NULL || i - 1 == _out->num);
+			outer_t *next = avl_next(&nodes[i].avl_node, &root);
+			outer_t *prev = avl_prev(&nodes[i].avl_node, &root);
+			assert(next == NULL || i + 1 == next->num);
+			assert(prev == NULL || i - 1 == prev->num);
 		}
 
-		// assert(min == avl_min(&root)->num);
-		// assert(max == avl_max(&root)->num);
+		assert(0 == avl_min(&root)->num);
+		assert(arr_len(nodes) - 1 == avl_max(&root)->num);
 
 		for (size_t i = 0; i < arr_len(nodes); ++i) {
 			outer_t *out = avl_find(&nodes[i].avl_node, &root);

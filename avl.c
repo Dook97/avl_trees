@@ -1,5 +1,4 @@
 #include "avl.h"
-#include <stdbool.h>
 
 /* --- MACROS ------------------------------------------------- */
 
@@ -20,13 +19,13 @@
  * returns >0 if node1 > node2
  */
 static int compare_nodes(avl_root_t *root, avl_node_t *node1, avl_node_t *node2) {
-	return (*(root->comparator))((*(root->extractor))(node1),
-				     (*(root->extractor))(node2));
+	return (*root->comparator)((*root->extractor)(node1),
+				   (*root->extractor)(node2));
 }
 
 /* choose next node on the path to node with given key according to BST invariant */
 static avl_node_t **choose_son(avl_node_t *key_node, avl_node_t *node, avl_root_t *root) {
-	return (compare_nodes(root, key_node, node) < 0) ? &node->left_son : &node->right_son;
+	return (compare_nodes(root, key_node, node) < 0) ? &node->sons[left] : &node->sons[right];
 }
 
 /* returns true if node with given key was found otherwise false
@@ -50,30 +49,29 @@ static bool avl_find_getaddr(avl_node_t *key_node, avl_root_t *root, avl_node_t 
 static void replace_node(avl_node_t **replaced, avl_node_t **replacement) {
 	(*replacement)->sign = (*replaced)->sign;
 
-	if ((*replaced)->left_son != NULL)
-		(*replaced)->left_son->father  = *replacement;
-	if ((*replaced)->right_son != NULL)
-		(*replaced)->right_son->father = *replacement;
+	if ((*replaced)->sons[left] != NULL)
+		(*replaced)->sons[left]->father  = *replacement;
+	if ((*replaced)->sons[right] != NULL)
+		(*replaced)->sons[right]->father = *replacement;
 
-	avl_node_t *temp = (*replacement)->right_son;
+	avl_node_t *temp = (*replacement)->sons[right];
 	if (temp != NULL)
 		temp->father = (*replacement)->father;
 
-	(*replacement)->father    = (*replaced)->father;
-	(*replacement)->left_son  = (*replaced)->left_son;
-	if ((*replaced)->right_son != *replacement)
-		(*replacement)->right_son = (*replaced)->right_son;
+	(*replacement)->father = (*replaced)->father;
+	(*replacement)->sons[left] = (*replaced)->sons[left];
+	if ((*replaced)->sons[right] != *replacement)
+		(*replacement)->sons[right] = (*replaced)->sons[right];
 
 	*replaced    = *replacement;
 	*replacement = temp;
 }
 
-/* returns pointer to father's pointer to minimal node in right subtree of root
- * expects right son of root to be non-null */
-static avl_node_t **get_min_node(avl_node_t *node) {
-	avl_node_t **min = &node->right_son;
-	while ((*min)->left_son != NULL)
-		min = &(*min)->left_son;
+/* returns pointer to fathers pointer to minimum of the right subtree or maximum of the left subtree */
+static avl_node_t **minmax_of_subtree(avl_node_t *node, bool max) {
+	avl_node_t **min = &node->sons[max];
+	while ((*min)->sons[!max] != NULL)
+		min = &(*min)->sons[!max];
 	return min;
 }
 
@@ -88,9 +86,9 @@ static avl_node_t **get_min_node(avl_node_t *node) {
  * x, y represent nodes while A, B, C represent (possibly empty) subtrees
  * arguments are named according to the left part of the diagram */
 static void rotate(avl_node_t **ynode, bool left_to_right) {
-	avl_node_t **ptr_to_x = left_to_right ? &(*ynode)->left_son : &(*ynode)->right_son;
+	avl_node_t **ptr_to_x = left_to_right ? &(*ynode)->sons[left] : &(*ynode)->sons[right];
 	avl_node_t *xnode = *ptr_to_x;
-	avl_node_t **bnode = left_to_right ? &xnode->right_son : &xnode->left_son;
+	avl_node_t **bnode = left_to_right ? &xnode->sons[right] : &xnode->sons[left];
 
 	/* update signs */
 	int aheight, bheight;
@@ -119,7 +117,7 @@ static void rotate(avl_node_t **ynode, bool left_to_right) {
 static avl_node_t **get_fathers_ptr(avl_node_t *node, avl_root_t *root) {
 	if (node->father == NULL)
 		return &root->root_node;
-	return (node->father->left_son == node) ? &node->father->left_son : &node->father->right_son;
+	return (node->father->sons[left] == node) ? &node->father->sons[left] : &node->father->sons[right];
 }
 
 /* node points to father of deleted/inserted node
@@ -133,10 +131,10 @@ static void balance(avl_node_t *node, avl_root_t *root, bool from_left, bool aft
 			return;
 
 		avl_node_t *father = node->father;
-		bool new_left = (father != NULL && node == father->left_son);
+		bool new_left = (father != NULL && node == father->sons[left]);
 
 		if (ABS(node->sign) == 2) {
-			avl_node_t **son = newbool ? &node->right_son : &node->left_son;
+			avl_node_t **son = newbool ? &node->sons[right] : &node->sons[left];
 			int prevsign = (*son)->sign;
 			if (ABS(node->sign + (*son)->sign) == 1)
 				rotate(son, newbool);
@@ -152,20 +150,20 @@ static void balance(avl_node_t *node, avl_root_t *root, bool from_left, bool aft
 
 /* returns number of non-NULL sons of node */
 static int get_number_of_sons(avl_node_t *node) {
-	return !!node->left_son + !!node->right_son;
+	return !!node->sons[left] + !!node->sons[right];
 }
 
 /* replace a node by a newly inserted one */
 static void replace_by_new(avl_node_t **replaced, avl_node_t *replacement) {
 	replacement->sign = (*replaced)->sign;
 
-	if ((*replaced)->left_son != NULL)
-		(*replaced)->left_son->father = replacement;
-	if ((*replaced)->right_son != NULL)
-		(*replaced)->right_son->father = replacement;
+	if ((*replaced)->sons[left] != NULL)
+		(*replaced)->sons[left]->father = replacement;
+	if ((*replaced)->sons[right] != NULL)
+		(*replaced)->sons[right]->father = replacement;
 
-	replacement->left_son = (*replaced)->left_son;
-	replacement->right_son = (*replaced)->right_son;
+	replacement->sons[left]  = (*replaced)->sons[left];
+	replacement->sons[right] = (*replaced)->sons[right];
 	replacement->father = (*replaced)->father;
 
 	*replaced = replacement;
@@ -173,7 +171,7 @@ static void replace_by_new(avl_node_t **replaced, avl_node_t *replacement) {
 
 static void init_node(avl_node_t *node, avl_node_t *father) {
 	node->father = father;
-	node->left_son = node->right_son = NULL;
+	node->sons[left] = node->sons[right] = NULL;
 	node->sign = 0;
 }
 
@@ -218,14 +216,14 @@ avl_node_t *avl_delete_impl(avl_node_t *key_node, avl_root_t *root) {
 	bool from_left;
 	if (get_number_of_sons(node) < 2) {
 		balance_start = node->father;
-		from_left = (node->father != NULL && node->father->left_son == node);
-		*son = (node->left_son != NULL) ? node->left_son : node->right_son;
+		from_left = (node->father != NULL && node->father->sons[left] == node);
+		*son = (node->sons[left] != NULL) ? node->sons[left] : node->sons[right];
 		if (*son != NULL)
 			(*son)->father = node->father;
 	} else {
-		avl_node_t **min = get_min_node(node);
+		avl_node_t **min = minmax_of_subtree(node, right);
 		balance_start = (compare_nodes(root, (*min)->father, key_node) != 0) ? (*min)->father : *min;
-		from_left = (balance_start->left_son == *min);
+		from_left = (balance_start->sons[left] == *min);
 		replace_node(son, min);
 	}
 	balance(balance_start, root, from_left, true);
@@ -233,40 +231,16 @@ avl_node_t *avl_delete_impl(avl_node_t *key_node, avl_root_t *root) {
 	return node;
 }
 
-/* get minimal node according to the ordering specified by the comparator function */
-avl_node_t *avl_min_impl(avl_root_t *root) {
-	avl_node_t *out = root->root_node;
-	while (out->left_son != NULL)
-		out = out->left_son;
-	return out;
+/* get minimal or maximal node according to the ordering specified by the comparator function */
+avl_node_t *avl_minmax_impl(avl_root_t *root, bool max) {
+	return *minmax_of_subtree(&(avl_node_t){{root->root_node, root->root_node}}, !max);
 }
 
-/* get maximal node according to the ordering specified by the comparator function */
-avl_node_t *avl_max_impl(avl_root_t *root) {
-	avl_node_t *out = root->root_node;
-	while (out->right_son != NULL)
-		out = out->right_son;
-	return out;
-}
-
-/* get next node according to the ordering specified by the comparator function */
-avl_node_t *avl_next_impl(avl_node_t *node) {
-	if (node->right_son != NULL)
-		return *get_min_node(node);
-	while (node->father != NULL && node == node->father->right_son)
+/* get previous or next node according to the ordering specified by the comparator function */
+avl_node_t *avl_prevnext_impl(avl_node_t *node, bool next) {
+	if (node->sons[next] != NULL)
+		return *minmax_of_subtree(node, next);
+	while (node->father != NULL && node == node->father->sons[next])
 		node = node->father;
-	return (node->father == NULL) ? NULL : node->father;
-}
-
-/* get prev node according to the ordering specified by the comparator function */
-avl_node_t *avl_prev_impl(avl_node_t *node) {
-	if (node->left_son != NULL) {
-		avl_node_t **min = &node->left_son;
-		while ((*min)->right_son != NULL)
-			min = &(*min)->right_son;
-		return *min;
-	}
-	while (node->father != NULL && node == node->father->left_son)
-		node = node->father;
-	return (node->father == NULL) ? NULL : node->father;
+	return node->father;
 }
