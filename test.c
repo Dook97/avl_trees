@@ -27,49 +27,16 @@ outer_t *extractor(avl_node_t *node) {
 }
 
 int main() {
-	// srandom(time(NULL));
-
 	outer_root_t root = AVL_NEWROOT(outer_root_t, extractor, comparator);
-	outer_t nodes[200000];
+	outer_t nodes[100];
 
-	// long min, max;
-	for (int j = 0; j < 100; ++j) {
-		// max = LONG_MIN;
-		// min = LONG_MAX;
-
-		for (size_t i = 0; i < arr_len(nodes); ++i) {
-			// long rand = random();
-			// if (rand < min)
-			// 	min = rand;
-			// if (rand > max)
-			// 	max = rand;
-			nodes[i].num = i;
-			outer_t *out = avl_insert(&nodes[i].avl_node, &root);
-			assert(out == NULL || (comparator(out, &nodes[i]) == 0 && out != &nodes[i]));
-		}
-
-		for (size_t i = 0; i < arr_len(nodes); ++i) {
-			outer_t *next = avl_next(&nodes[i].avl_node, &root);
-			outer_t *prev = avl_prev(&nodes[i].avl_node, &root);
-			assert(next == NULL || i + 1 == next->num);
-			assert(prev == NULL || i - 1 == prev->num);
-		}
-
-		assert(0 == avl_min(&root)->num);
-		assert(arr_len(nodes) - 1 == avl_max(&root)->num);
-
-		for (size_t i = 0; i < arr_len(nodes); ++i) {
-			outer_t *out = avl_find(&nodes[i].avl_node, &root);
-			assert(nodes[i].num == out->num);
-			assert(out != NULL);
-		}
-
-		for (size_t i = 0; i < arr_len(nodes); ++i) {
-			outer_t *out = avl_delete(&nodes[i].avl_node, &root);
-			assert(out == NULL || out == &nodes[i] || nodes[i].num == out->num);
-		}
-
-		printf("test %03d finished succesfully\n", j+1);
+	for (size_t i = 0; i < arr_len(nodes); ++i) {
+		nodes[i].num = i;
+		avl_insert(&nodes[i].avl_node, &root);
 	}
-	puts("all tests finished successfully");
+
+	avl_iterator_t iterator = avl_newiterator(root, NULL, &nodes[17].avl_node);
+
+	printf("%ld\n", extractor(iterator.cur)->num);
+	printf("%ld\n", extractor(iterator.end)->num);
 }

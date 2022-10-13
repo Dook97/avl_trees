@@ -28,16 +28,26 @@ typedef int (*comparator_t)(void *item1, void *item2);
 /* extract wrapper struct from avl_node */
 typedef void *(*extractor_t)(avl_node_t *node);
 
+/* internal structure representing root of the AVL tree */
 typedef struct {
 	avl_node_t *root_node;
 	extractor_t extractor;
 	comparator_t comparator;
 } avl_root_t;
 
+typedef struct {
+	avl_node_t *cur, *end;
+	avl_root_t *root;
+	bool low_to_high;
+} avl_iterator_t;
+
 /* --- INTERNAL FUNCTIONS ------------------------------------- */
 
 /* returns pointer to node with given key or NULL if it wasn't found */
 avl_node_t *avl_find_impl(avl_node_t *key_node, avl_root_t *root);
+
+/* returns pointer to node closest to the one that was searched for as defined by the comparator function */
+avl_node_t *avl_closest_impl(avl_node_t *key_node, avl_root_t *root);
 
 /* if a node with given key already existed in the tree it is replaced by
  * new_node and the pointer to it is returned, otherwise the node is inserted
@@ -54,6 +64,10 @@ avl_node_t *avl_minmax_impl(avl_root_t *root, bool max);
 avl_node_t *avl_prevnext_impl(avl_node_t *node, bool next);
 
 /* --- INTERNAL MACROS ---------------------------------------- */
+
+/* get number of args in __VA_ARGS__ */
+#define NUMARGS(...) \
+	(sizeof((int[]){__VA_ARGS__}) / sizeof(int))
 
 #define AVL_GET_MEMBER_OFFSET(wrapper_type, avl_member_name) \
 	((size_t)&((wrapper_type *)0)->avl_member_name)
@@ -94,6 +108,24 @@ avl_node_t *avl_prevnext_impl(avl_node_t *node, bool next);
 			.comparator = (comparator_t)(comparator) \
 		} \
 	}
+
+#define avl_newiterator(root, lower_bound, upper_bound, ...) \
+	({ \
+		__auto_type __safe_root = (root); \
+		avl_node_t *__upper_node = (upper_bound); \
+		avl_node_t *__lower_node = (lower_bound); \
+		if (__upper_node == NULL) \
+			__upper_node = avl_minmax_impl(&__safe_root.AVL_EMBED_NAMING_CONVENTION, true); \
+		if (__lower_node == NULL) \
+			__lower_node = avl_minmax_impl(&__safe_root.AVL_EMBED_NAMING_CONVENTION, false); \
+		bool __low_to_high = ((NUMARGS(__VA_ARGS__ ) == 1) ? __VA_ARGS__ : true); \
+		(avl_iterator_t){ \
+			.cur = __low_to_high ? __lower_node : __upper_node, \
+			.end = __low_to_high ? __upper_node : __lower_node, \
+			.root = &__safe_root.AVL_EMBED_NAMING_CONVENTION, \
+			.low_to_high = __low_to_high \
+		}; \
+	})
 
 /* public wrappers around internal functions which upcast the result to the wrapper struct */
 #define avl_find(node, root) \

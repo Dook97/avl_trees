@@ -180,6 +180,12 @@ static void init_node(avl_node_t *node, avl_node_t *father) {
 /* returns pointer to node with given key or NULL if it wasn't found */
 avl_node_t *avl_find_impl(avl_node_t *key_node, avl_root_t *root) {
 	avl_node_t **out;
+	return avl_find_getaddr(key_node, root, &out) ? *out : NULL;
+}
+
+/* returns pointer to node closest to the one that was searched for as defined by the comparator function */
+avl_node_t *avl_closest_impl(avl_node_t *key_node, avl_root_t *root) {
+	avl_node_t **out;
 	avl_find_getaddr(key_node, root, &out);
 	return *out;
 }
