@@ -184,7 +184,7 @@ avl_node_t *avl_find_impl(avl_node_t *key_node, avl_root_t *root) {
 }
 
 /* returns pointer to node closest to the one that was searched for as defined by the comparator function */
-avl_node_t *avl_closest_impl(avl_node_t *key_node, avl_root_t *root) {
+avl_node_t *avl_find_closest_impl(avl_node_t *key_node, avl_root_t *root) {
 	avl_node_t **out;
 	avl_find_getaddr(key_node, root, &out);
 	return *out;
@@ -249,4 +249,48 @@ avl_node_t *avl_prevnext_impl(avl_node_t *node, bool next) {
 	while (node->father != NULL && node == node->father->sons[next])
 		node = node->father;
 	return node->father;
+}
+
+/* get new iterator */
+void avl_newiterator_impl(avl_root_t *root, avl_node_t *lower_node, avl_node_t *upper_node,
+		bool low_to_high, avl_iterator_t *out) {
+
+	avl_node_t *min, *max;
+	min = avl_minmax_impl(root, false);
+	max = avl_minmax_impl(root, true);
+
+	if (lower_node == NULL)
+		lower_node = min;
+	if (upper_node == NULL)
+		upper_node = max;
+
+	/* if an invalid range is specified invalidate the iterator */
+	if (compare_nodes(root, lower_node, upper_node) > 0
+		|| compare_nodes(root, lower_node, max) > 0
+		|| compare_nodes(root, upper_node, min) < 0) {
+		out->cur = NULL;
+		return;
+	}
+
+	*out = (avl_iterator_t){
+		.cur = avl_find_closest_impl(low_to_high ? lower_node : upper_node, root),
+		.end = avl_find_closest_impl(low_to_high ? upper_node : lower_node, root),
+		.root = root,
+		.low_to_high = low_to_high
+	};
+}
+
+/* get next node from iterator */
+avl_node_t *avl_advance_impl(avl_iterator_t *iterator) {
+	if (iterator->cur == NULL)
+		return NULL;
+
+	if (compare_nodes(iterator->root, iterator->cur, iterator->end) == 0) {
+		iterator->cur = NULL;
+		return iterator->end;
+	}
+
+	avl_node_t *out = iterator->cur;
+	iterator->cur = avl_prevnext_impl(iterator->cur, iterator->low_to_high);
+	return out;
 }

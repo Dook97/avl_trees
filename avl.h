@@ -63,11 +63,17 @@ avl_node_t *avl_minmax_impl(avl_root_t *root, bool max);
 /* get previous or next node according to the ordering specified by the comparator function */
 avl_node_t *avl_prevnext_impl(avl_node_t *node, bool next);
 
+/* get new iterator */
+void avl_newiterator_impl(avl_root_t *root, avl_node_t *lower_node, avl_node_t *upper_node,
+		bool low_to_high, avl_iterator_t *out);
+
+/* get next item from iterator */
+avl_node_t *avl_advance_impl(avl_iterator_t *iterator);
+
 /* --- INTERNAL MACROS ---------------------------------------- */
 
 /* get number of args in __VA_ARGS__ */
-#define NUMARGS(...) \
-	(sizeof((int[]){__VA_ARGS__}) / sizeof(int))
+#define AVL_GET_ARGS_COUNT(...) (sizeof((int[]){__VA_ARGS__}) / sizeof(int))
 
 #define AVL_GET_MEMBER_OFFSET(wrapper_type, avl_member_name) \
 	((size_t)&((wrapper_type *)0)->avl_member_name)
@@ -111,20 +117,10 @@ avl_node_t *avl_prevnext_impl(avl_node_t *node, bool next);
 
 #define avl_newiterator(root, lower_bound, upper_bound, ...) \
 	({ \
-		__auto_type __safe_root = (root); \
-		avl_node_t *__upper_node = (upper_bound); \
-		avl_node_t *__lower_node = (lower_bound); \
-		if (__upper_node == NULL) \
-			__upper_node = avl_minmax_impl(&__safe_root.AVL_EMBED_NAMING_CONVENTION, true); \
-		if (__lower_node == NULL) \
-			__lower_node = avl_minmax_impl(&__safe_root.AVL_EMBED_NAMING_CONVENTION, false); \
-		bool __low_to_high = ((NUMARGS(__VA_ARGS__ ) == 1) ? __VA_ARGS__ : true); \
-		(avl_iterator_t){ \
-			.cur = __low_to_high ? __lower_node : __upper_node, \
-			.end = __low_to_high ? __upper_node : __lower_node, \
-			.root = &__safe_root.AVL_EMBED_NAMING_CONVENTION, \
-			.low_to_high = __low_to_high \
-		}; \
+		bool __low_to_high = ((AVL_GET_ARGS_COUNT(__VA_ARGS__ ) == 1) ? __VA_ARGS__ : true); \
+		avl_iterator_t out; \
+		avl_newiterator_impl(&(root)->AVL_EMBED_NAMING_CONVENTION, (lower_bound), (upper_bound), __low_to_high, &out); \
+		out; \
 	})
 
 /* public wrappers around internal functions which upcast the result to the wrapper struct */
@@ -174,5 +170,8 @@ avl_node_t *avl_prevnext_impl(avl_node_t *node, bool next);
 		__auto_type __safe_root = (root); \
 		AVL_INVOKE_FUNCTION(__safe_root, avl_prevnext_impl, __safe_node, false); \
 	})
+
+#define avl_advance(iterator, root) \
+	AVL_INVOKE_FUNCTION((root), avl_advance_impl, (iterator))
 
 #endif
