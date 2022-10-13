@@ -294,3 +294,8 @@ avl_node_t *avl_advance_impl(avl_iterator_t *iterator) {
 	iterator->cur = avl_prevnext_impl(iterator->cur, iterator->low_to_high);
 	return out;
 }
+
+/* get next node from iterator without changing its state */
+avl_node_t *avl_peek_impl(avl_iterator_t *iterator) {
+	return iterator->cur;
+}

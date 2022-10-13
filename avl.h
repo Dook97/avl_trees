@@ -47,7 +47,7 @@ typedef struct {
 avl_node_t *avl_find_impl(avl_node_t *key_node, avl_root_t *root);
 
 /* returns pointer to node closest to the one that was searched for as defined by the comparator function */
-avl_node_t *avl_closest_impl(avl_node_t *key_node, avl_root_t *root);
+avl_node_t *avl_find_closest_impl(avl_node_t *key_node, avl_root_t *root);
 
 /* if a node with given key already existed in the tree it is replaced by
  * new_node and the pointer to it is returned, otherwise the node is inserted
@@ -69,6 +69,9 @@ void avl_newiterator_impl(avl_root_t *root, avl_node_t *lower_node, avl_node_t *
 
 /* get next item from iterator */
 avl_node_t *avl_advance_impl(avl_iterator_t *iterator);
+
+/* get next node from iterator without changing its state */
+avl_node_t *avl_peek_impl(avl_iterator_t *iterator) {
 
 /* --- INTERNAL MACROS ---------------------------------------- */
 
@@ -131,6 +134,13 @@ avl_node_t *avl_advance_impl(avl_iterator_t *iterator);
 		AVL_INVOKE_FUNCTION(__safe_root, avl_find_impl, __safe_node, &__safe_root->AVL_EMBED_NAMING_CONVENTION); \
 	})
 
+#define avl_find_closest(node, root) \
+	({ \
+		avl_node_t *__safe_node = (node); \
+		__auto_type __safe_root = (root); \
+		AVL_INVOKE_FUNCTION(__safe_root, avl_find_closest_impl, __safe_node, &__safe_root->AVL_EMBED_NAMING_CONVENTION); \
+	})
+
 #define avl_insert(node, root) \
 	({ \
 		avl_node_t *__safe_node = (node); \
@@ -173,5 +183,8 @@ avl_node_t *avl_advance_impl(avl_iterator_t *iterator);
 
 #define avl_advance(iterator, root) \
 	AVL_INVOKE_FUNCTION((root), avl_advance_impl, (iterator))
+
+#define avl_peek(iterator, root) \
+	AVL_INVOKE_FUNCTION((root), avl_peek_impl, (iterator))
 
 #endif
