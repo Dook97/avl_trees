@@ -12,7 +12,7 @@
 
 /* --- INTERNAL FUNCTIONS ------------------------------------- */
 
-/* a shortcut to compare two nodes via the user provided upcaster and comparator functions
+/* a shortcut to compare two nodes via the user provided comparator function
  *
  * returns <0 if node1 < node2
  * returns  0 if node1 = node2

@@ -52,6 +52,11 @@ void insert_random(outer_root_t *root, outer_t nodes[]) {
 	}
 }
 
+void test_remove(outer_root_t *root, outer_t nodes[]) {
+	insert_random(root, nodes);
+	remove_all(root, nodes);
+}
+
 void insert_linear(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	fill_linear(nodes);
@@ -147,8 +152,8 @@ int main() {
 	outer_root_t root = AVL_NEW(outer_root_t, outer_t, avl_node, comparator);
 	outer_t nodes[NODES_COUNT];
 
-	run_test(insert_random, &root, nodes, "insert_random", 10);
-	run_test(remove_all, &root, nodes, "remove_all", 10);
+	run_test(insert_random, &root, nodes, "test_insert", 10);
+	run_test(test_remove, &root, nodes, "test_remove", 10);
 	run_test(test_find, &root, nodes, "test_find", 10);
 	run_test(test_min, &root, nodes, "test_min", 10);
 	run_test(test_max, &root, nodes, "test_max", 10);

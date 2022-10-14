@@ -9,8 +9,7 @@ The AVL Tree data structure is a flavor of the binary search tree with the
 added ability of self-balancing. All basic operations are therefore guaranteed
 to be $O(\log n)$, where $n$ is the number of elements inside the structure.
 
-This specific implementation aims for a balance between generality and user
-comfort which is why it's generic. However due to the C language being limited in
+This implementation is generic. However due to the C language being limited in
 this regard I had to use some non-standard language extensions. The library
 compiles with `GCC v12.2.0` and `clang v14.0.6`. Other options were not tested.
 
