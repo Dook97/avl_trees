@@ -41,9 +41,12 @@ int main() {
 		avl_insert(&root, &nodes[i].avl_node);
 	}
 
-	outer_t test = { .num = 3 };
+	outer_t test = { .num = 4 };
 
-	avl_iterator_t iterator = avl_get_iterator(&root, NULL, &test.avl_node);
+	avl_iterator_t iterator = avl_get_iterator(&root, NULL, &test.avl_node, false);
 	for (outer_t *out; (out = avl_advance(&root, &iterator)); )
 		printf("%ld\n", out->num);
+
+	assert(avl_contains(&root, &node1.avl_node));
+	assert(!avl_contains(&root, &test.avl_node));
 }

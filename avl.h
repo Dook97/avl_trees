@@ -138,7 +138,7 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 	 })
 
 #define avl_contains(root, node) \
-	avl_find_impl((node), (root)->AVL_EMBED_NAMING_CONVENTION) != NULL
+	(avl_find_impl((node), &(root)->AVL_EMBED_NAMING_CONVENTION) != NULL)
 
 #define avl_min(root) \
 	({ \
