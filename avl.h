@@ -64,14 +64,14 @@ avl_node_t *avl_minmax_impl(avl_root_t *root, bool max);
 avl_node_t *avl_prevnext_impl(avl_node_t *node, bool next);
 
 /* get new iterator */
-void avl_newiterator_impl(avl_root_t *root, avl_node_t *lower_node, avl_node_t *upper_node,
+void avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, avl_node_t *upper_bound,
 		bool low_to_high, avl_iterator_t *out);
 
 /* get next item from iterator */
 avl_node_t *avl_advance_impl(avl_iterator_t *iterator);
 
 /* get next node from iterator without changing its state */
-avl_node_t *avl_peek_impl(avl_iterator_t *iterator) {
+avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 
 /* --- INTERNAL MACROS ---------------------------------------- */
 
@@ -118,11 +118,11 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator) {
 		} \
 	}
 
-#define avl_newiterator(root, lower_bound, upper_bound, ...) \
+#define avl_get_iterator(root, lower_bound, upper_bound, ...) \
 	({ \
 		bool __low_to_high = ((AVL_GET_ARGS_COUNT(__VA_ARGS__ ) == 1) ? __VA_ARGS__ : true); \
 		avl_iterator_t out; \
-		avl_newiterator_impl(&(root)->AVL_EMBED_NAMING_CONVENTION, (lower_bound), (upper_bound), __low_to_high, &out); \
+		avl_get_iterator_impl(&(root)->AVL_EMBED_NAMING_CONVENTION, (lower_bound), (upper_bound), __low_to_high, &out); \
 		out; \
 	})
 

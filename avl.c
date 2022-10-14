@@ -252,29 +252,29 @@ avl_node_t *avl_prevnext_impl(avl_node_t *node, bool next) {
 }
 
 /* get new iterator */
-void avl_newiterator_impl(avl_root_t *root, avl_node_t *lower_node, avl_node_t *upper_node,
+void avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, avl_node_t *upper_bound,
 		bool low_to_high, avl_iterator_t *out) {
 
 	avl_node_t *min, *max;
 	min = avl_minmax_impl(root, false);
 	max = avl_minmax_impl(root, true);
 
-	if (lower_node == NULL)
-		lower_node = min;
-	if (upper_node == NULL)
-		upper_node = max;
+	if (lower_bound == NULL)
+		lower_bound = min;
+	if (upper_bound == NULL)
+		upper_bound = max;
 
 	/* if an invalid range is specified invalidate the iterator */
-	if (compare_nodes(root, lower_node, upper_node) > 0
-		|| compare_nodes(root, lower_node, max) > 0
-		|| compare_nodes(root, upper_node, min) < 0) {
+	if (compare_nodes(root, lower_bound, upper_bound) > 0
+		|| compare_nodes(root, lower_bound, max)  > 0
+		|| compare_nodes(root, upper_bound, min)  < 0) {
 		out->cur = NULL;
 		return;
 	}
 
 	*out = (avl_iterator_t){
-		.cur = avl_find_closest_impl(low_to_high ? lower_node : upper_node, root),
-		.end = avl_find_closest_impl(low_to_high ? upper_node : lower_node, root),
+		.cur = avl_find_closest_impl(low_to_high ? lower_bound : upper_bound, root),
+		.end = avl_find_closest_impl(low_to_high ? upper_bound : lower_bound, root),
 		.root = root,
 		.low_to_high = low_to_high
 	};

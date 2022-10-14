@@ -35,10 +35,10 @@ int main() {
 		avl_insert(&nodes[i].avl_node, &root);
 	}
 
-	outer_t test = { .num = -136 };
+	outer_t test = { .num = 13 };
 	outer_t test2 = { .num = 35 };
 
-	avl_iterator_t iterator = avl_newiterator(&root, &test.avl_node, &test2.avl_node, false);
+	avl_iterator_t iterator = avl_get_iterator(&root, &test.avl_node, &test2.avl_node);
 	for (outer_t *out; (out = avl_advance(&iterator, &root));)
 		printf("%ld\n", out->num);
 }
