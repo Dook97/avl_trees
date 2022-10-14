@@ -62,6 +62,15 @@ void insert_linear(outer_root_t *root, outer_t nodes[]) {
 	}
 }
 
+void test_find(outer_root_t *root, outer_t nodes[]) {
+	remove_all(root, nodes);
+	insert_random(root, nodes);
+	for (size_t i = 0; i < NODES_COUNT; ++i) {
+		outer_t *found = avl_find(root, &nodes[i]);
+		assert(found->num == nodes[i].num);
+	}
+}
+
 void test_min(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	insert_linear(root, nodes);
@@ -140,6 +149,7 @@ int main() {
 
 	run_test(insert_random, &root, nodes, "insert_random", 10);
 	run_test(remove_all, &root, nodes, "remove_all", 10);
+	run_test(test_find, &root, nodes, "test_find", 10);
 	run_test(test_min, &root, nodes, "test_min", 10);
 	run_test(test_max, &root, nodes, "test_max", 10);
 	run_test(test_next, &root, nodes, "test_next", 10);
