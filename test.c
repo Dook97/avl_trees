@@ -23,8 +23,12 @@ int comparator(void *node1, void *node2) {
 	return 1;
 }
 
-void *extractor(avl_node_t *node) {
+void *upcaster(avl_node_t *node) {
 	return AVL_UPCAST(node, outer_t, avl_node);
+}
+
+avl_node_t *downcaster(void *item) {
+	return AVL_DOWNCAST(item, outer_t, avl_node);
 }
 
 void fill_random(outer_t nodes[]) {
@@ -40,9 +44,9 @@ void fill_linear(outer_t nodes[]) {
 
 void remove_all(outer_root_t *root, outer_t nodes[]) {
 	for (size_t i = 0; i < NODES_COUNT; ++i) {
-		outer_t *deleted = avl_remove(root, &nodes[i].avl_node);
+		outer_t *deleted = avl_remove(root, &nodes[i]);
 		assert(deleted == NULL || comparator(deleted, &nodes[i]) == 0);
-		assert(!avl_contains(root, &nodes[i].avl_node));
+		assert(!avl_contains(root, &nodes[i]));
 	}
 }
 
@@ -50,9 +54,9 @@ void insert_random(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	fill_random(nodes);
 	for (size_t i = 0; i < NODES_COUNT; ++i) {
-		outer_t *replaced = avl_insert(root, &nodes[i].avl_node);
+		outer_t *replaced = avl_insert(root, &nodes[i]);
 		assert(replaced == NULL || comparator(replaced, &nodes[i]) == 0);
-		assert(avl_contains(root, &nodes[i].avl_node));
+		assert(avl_contains(root, &nodes[i]));
 	}
 }
 
@@ -60,9 +64,9 @@ void insert_linear(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	fill_linear(nodes);
 	for (size_t i = 0; i < NODES_COUNT; ++i) {
-		outer_t *replaced = avl_insert(root, &nodes[i].avl_node);
+		outer_t *replaced = avl_insert(root, &nodes[i]);
 		assert(replaced == NULL);
-		assert(avl_contains(root, &nodes[i].avl_node));
+		assert(avl_contains(root, &nodes[i]));
 	}
 }
 
@@ -82,7 +86,7 @@ void test_next(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	insert_linear(root, nodes);
 	for (size_t i = 0; i < NODES_COUNT; ++i) {
-		outer_t *next = avl_next(root, &nodes[i].avl_node);
+		outer_t *next = avl_next(root, &nodes[i]);
 		assert((next == NULL && i == NODES_COUNT - 1) || next->num == i + 1);
 	}
 }
@@ -91,7 +95,7 @@ void test_prev(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	insert_linear(root, nodes);
 	for (size_t i = 0; i < NODES_COUNT; ++i) {
-		outer_t *prev = avl_prev(root, &nodes[i].avl_node);
+		outer_t *prev = avl_prev(root, &nodes[i]);
 		assert((prev == NULL && i == 0) || prev->num == i - 1);
 	}
 }
@@ -100,14 +104,14 @@ void test_iterator(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	insert_random(root, nodes);
 
-	avl_iterator_t iter = avl_get_iterator(root, &nodes[0].avl_node, &nodes[1].avl_node);
+	avl_iterator_t iter = avl_get_iterator(root, &nodes[0], &nodes[1]);
 	outer_t *prev = avl_advance(root, &iter);
 	for (outer_t *cur; cur = avl_advance(root, &iter);) {
 		assert(comparator(prev, cur) < 0);
 		prev = cur;
 	}
 
-	iter = avl_get_iterator(root, &nodes[0].avl_node, &nodes[1].avl_node, false);
+	iter = avl_get_iterator(root, &nodes[0], &nodes[1], false);
 	prev = avl_advance(root, &iter);
 	for (outer_t *cur; cur = avl_advance(root, &iter);) {
 		assert(comparator(prev, cur) > 0);
@@ -117,12 +121,12 @@ void test_iterator(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	insert_linear(root, nodes);
 
-	iter = avl_get_iterator(root, &nodes[0].avl_node, &nodes[NODES_COUNT - 1].avl_node);
+	iter = avl_get_iterator(root, &nodes[0], &nodes[NODES_COUNT - 1]);
 	for (size_t i = 0; i < NODES_COUNT; ++i)
 		assert(i == avl_advance(root, &iter)->num);
 
 
-	iter = avl_get_iterator(root, &nodes[NODES_COUNT - 1].avl_node, &nodes[0].avl_node);
+	iter = avl_get_iterator(root, &nodes[NODES_COUNT - 1], &nodes[0]);
 	assert(avl_advance(root, &iter) == NULL);
 }
 
@@ -139,7 +143,7 @@ void run_test(test_func func, outer_root_t *root, outer_t nodes[], char *msg, in
 }
 
 int main() {
-	outer_root_t root = AVL_NEW(outer_root_t, extractor, comparator);
+	outer_root_t root = AVL_NEW(outer_root_t, comparator, upcaster, downcaster);
 	outer_t nodes[NODES_COUNT];
 
 	run_test(insert_random, &root, nodes, "insert_random", 10);

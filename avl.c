@@ -12,15 +12,15 @@
 
 /* --- INTERNAL FUNCTIONS ------------------------------------- */
 
-/* a shortcut to compare two nodes via the user provided extractor and comparator functions
+/* a shortcut to compare two nodes via the user provided upcaster and comparator functions
  *
  * returns <0 if node1 < node2
  * returns  0 if node1 = node2
  * returns >0 if node1 > node2
  */
 static int compare_nodes(avl_root_t *root, avl_node_t *node1, avl_node_t *node2) {
-	return (*root->comparator)((*root->extractor)(node1),
-				   (*root->extractor)(node2));
+	return (*root->comparator)((*root->upcaster)(node1),
+				   (*root->upcaster)(node2));
 }
 
 /* choose next node on the path to node with given key according to BST invariant */

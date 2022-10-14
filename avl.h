@@ -26,13 +26,16 @@ typedef enum avl_son_index { left, right } avl_son_index_t;
 typedef int (*avl_comparator_t)(void *item1, void *item2);
 
 /* extract wrapper struct from avl_node */
-typedef void *(*avl_extractor_t)(avl_node_t *node);
+typedef void *(*avl_upcaster_t)(avl_node_t *node);
+
+typedef avl_node_t *(*avl_downcaster_t)(void *wrapper);
 
 /* internal structure representing root of the AVL tree */
 typedef struct {
 	avl_node_t *root_node;
-	avl_extractor_t extractor;
 	avl_comparator_t comparator;
+	avl_upcaster_t upcaster;
+	avl_downcaster_t downcaster;
 } avl_root_t;
 
 typedef struct {
@@ -86,7 +89,7 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 	({ \
 		avl_node_t *__avl_func_output__ = (*(function_name))(__VA_ARGS__); \
 		(__avl_func_output__ == NULL) ? NULL : \
-			(__typeof__(*(root)->node_typeinfo__) *)((*((root)->AVL_EMBED_NAMING_CONVENTION.extractor))(__avl_func_output__)); \
+			(__typeof__(*(root)->node_typeinfo__) *)((*((root)->AVL_EMBED_NAMING_CONVENTION.upcaster))(__avl_func_output__)); \
 	})
 
 /* --- USER FACING MACROS ------------------------------------- */
@@ -105,40 +108,49 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 		(wrapper_type *)((void *)__mptr - AVL_GET_MEMBER_OFFSET(wrapper_type, avl_member_name)); \
 	})
 
+/* downcast from wrapper struct to its avl_node_t member */
+#define AVL_DOWNCAST(ptr_to_wrapper, wrapper_type, avl_member_name) \
+	((avl_node_t *)&((wrapper_type *)(ptr_to_wrapper))->avl_member_name)
+
 /* macro to initialize the user defined root struct */
-#define AVL_NEW(root_type_name, extractor, comparator) \
+#define AVL_NEW(root_type_name, _comparator, _upcaster, _downcaster) \
 	(root_type_name){ \
 		.AVL_EMBED_NAMING_CONVENTION = (avl_root_t){ \
 			.root_node  = NULL, \
-			.extractor  = (extractor), \
-			.comparator = (comparator) \
+			.comparator = (_comparator), \
+			.upcaster  = (_upcaster), \
+			.downcaster = (_downcaster) \
 		} \
 	}
 
 /* public wrappers around internal functions which upcast the result to the wrapper struct */
-#define avl_find(root, node) \
+#define avl_find(root, item) \
 	({ \
-		avl_node_t *__safe_node = (node); \
 		__auto_type __safe_root = (root); \
+		avl_node_t *__safe_node = (*__safe_root->AVL_EMBED_NAMING_CONVENTION.downcaster)(item); \
 		AVL_INVOKE_FUNCTION(__safe_root, avl_find_impl, __safe_node, &__safe_root->AVL_EMBED_NAMING_CONVENTION); \
 	})
 
-#define avl_insert(root, node) \
+#define avl_insert(root, item) \
 	({ \
-		avl_node_t *__safe_node = (node); \
 		__auto_type __safe_root = (root); \
+		avl_node_t *__safe_node = (*__safe_root->AVL_EMBED_NAMING_CONVENTION.downcaster)(item); \
 		AVL_INVOKE_FUNCTION(__safe_root, avl_insert_impl, __safe_node, &__safe_root->AVL_EMBED_NAMING_CONVENTION); \
 	})
 
-#define avl_remove(root, node) \
+#define avl_remove(root, item) \
 	({ \
-		avl_node_t *__safe_node = (node); \
 		__auto_type __safe_root = (root); \
+		avl_node_t *__safe_node = (*__safe_root->AVL_EMBED_NAMING_CONVENTION.downcaster)(item); \
 		AVL_INVOKE_FUNCTION(__safe_root, avl_remove_impl, __safe_node, &__safe_root->AVL_EMBED_NAMING_CONVENTION); \
 	 })
 
-#define avl_contains(root, node) \
-	(avl_find_impl((node), &(root)->AVL_EMBED_NAMING_CONVENTION) != NULL)
+#define avl_contains(root, item) \
+	({ \
+		__auto_type __safe_root = (root); \
+		avl_node_t *__safe_node = (*__safe_root->AVL_EMBED_NAMING_CONVENTION.downcaster)(item); \
+		(avl_find_impl(__safe_node, &__safe_root->AVL_EMBED_NAMING_CONVENTION) != NULL); \
+	})
 
 #define avl_min(root) \
 	({ \
@@ -152,25 +164,28 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 		AVL_INVOKE_FUNCTION(__safe_root, avl_minmax_impl, &__safe_root->AVL_EMBED_NAMING_CONVENTION, true); \
 	})
 
-#define avl_next(root, node) \
+#define avl_next(root, item) \
 	({ \
-		avl_node_t *__safe_node = (node); \
 		__auto_type __safe_root = (root); \
+		avl_node_t *__safe_node = (*__safe_root->AVL_EMBED_NAMING_CONVENTION.downcaster)(item); \
 		AVL_INVOKE_FUNCTION(__safe_root, avl_prevnext_impl, __safe_node, true); \
 	})
 
-#define avl_prev(root, node) \
+#define avl_prev(root, item) \
 	({ \
-		avl_node_t *__safe_node = (node); \
 		__auto_type __safe_root = (root); \
+		avl_node_t *__safe_node = (*__safe_root->AVL_EMBED_NAMING_CONVENTION.downcaster)(item); \
 		AVL_INVOKE_FUNCTION(__safe_root, avl_prevnext_impl, __safe_node, false); \
 	})
 
 #define avl_get_iterator(root, lower_bound, upper_bound, ...) \
 	({ \
 		bool __low_to_high = ((AVL_GET_ARGS_COUNT(__VA_ARGS__ ) == 1) ? __VA_ARGS__ : true); \
+		__auto_type __safe_root = (root); \
+		avl_node_t *__safe_lower = (*__safe_root->AVL_EMBED_NAMING_CONVENTION.downcaster)(lower_bound); \
+		avl_node_t *__safe_upper = (*__safe_root->AVL_EMBED_NAMING_CONVENTION.downcaster)(upper_bound); \
 		avl_iterator_t out; \
-		avl_get_iterator_impl(&(root)->AVL_EMBED_NAMING_CONVENTION, (lower_bound), (upper_bound), __low_to_high, &out); \
+		avl_get_iterator_impl(&__safe_root->AVL_EMBED_NAMING_CONVENTION, __safe_lower, __safe_upper, __low_to_high, &out); \
 		out; \
 	})
 
