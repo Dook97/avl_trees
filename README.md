@@ -131,7 +131,7 @@ The arguments to the `AVL_NEW` macro are:
 To insert `dict_item_t item` into the dictionary instance `dict_t dict` use `avl_insert`
 
 ```c
-avl_insert(&dict, &item.avl_node);
+dict_item_t *replaced = avl_insert(&dict, &item.avl_node);
 ```
 
 `avl_insert` places the item inside the dictionary **potentially replacing**
@@ -162,7 +162,7 @@ dict_item_t *found = avl_find(&dict, &item.avl_node);
 To remove `dict_item_t item` from `dict_t dict` use `avl_remove`
 
 ```c
-avl_remove(&dict, &item.avl_node);
+dict_item_t *removed = avl_remove(&dict, &item.avl_node);
 ```
 
 `avl_remove` returns a typed pointer to the deleted item or `NULL` if the
