@@ -1,5 +1,8 @@
 #include "avl.h"
 
+/* a readability measure - left & right serve as indicies into the sons member of avl_node_t */
+typedef enum Son { left, right } avl_son_t;
+
 /* --- MACROS ------------------------------------------------- */
 
 #define ABS(x) ({ __auto_type __temp_x = (x); __temp_x < 0 ? -__temp_x : __temp_x; })
@@ -42,9 +45,9 @@ static bool avl_find_getaddr(avl_node_t *key_node, avl_root_t *root, avl_node_t 
 	return *current_node != NULL && compare_nodes(root, *current_node, key_node) == 0;
 }
 
-/* used exclusively inside avl_delete - DO NOT USE ELSEWHERE
+/* used exclusively inside avl_remove - DO NOT USE ELSEWHERE
  * handles changes of pointers between node with two sons and it's replacement
- * such deleted node is replaced with minimal node from it's right subtree
+ * such removed node is replaced with minimal node from it's right subtree
  * arguments are pointers to fathers' pointers to the nodes */
 static void replace_node(avl_node_t **replaced, avl_node_t **replacement) {
 	(*replacement)->sign = (*replaced)->sign;
@@ -120,14 +123,14 @@ static avl_node_t **get_fathers_ptr(avl_node_t *node, avl_root_t *root) {
 	return (node->father->sons[left] == node) ? &node->father->sons[left] : &node->father->sons[right];
 }
 
-/* node points to father of deleted/inserted node
- * after a successful delete/insert traverses the path upward, updates signs
+/* node points to father of removed/inserted node
+ * after a successful remove/insert traverses the path upward, updates signs
  * and carries out any necessary rotations */
-static void balance(avl_node_t *node, avl_root_t *root, bool from_left, bool after_delete) {
+static void balance(avl_node_t *node, avl_root_t *root, bool from_left, bool after_remove) {
 	while (node != NULL) {
-		bool newbool = after_delete ^ !from_left;
+		bool newbool = after_remove ^ !from_left;
 		node->sign += (newbool ? +1 : -1);
-		if (ABS(node->sign) == after_delete)
+		if (ABS(node->sign) == after_remove)
 			return;
 
 		avl_node_t *father = node->father;
@@ -139,7 +142,7 @@ static void balance(avl_node_t *node, avl_root_t *root, bool from_left, bool aft
 			if (ABS(node->sign + (*son)->sign) == 1)
 				rotate(son, newbool);
 			rotate(get_fathers_ptr(node, root), !newbool);
-			if (!after_delete || prevsign == 0)
+			if (!after_remove || prevsign == 0)
 				return;
 		}
 
@@ -184,9 +187,14 @@ avl_node_t *avl_find_impl(avl_node_t *key_node, avl_root_t *root) {
 }
 
 /* returns pointer to node closest to the one that was searched for as defined by the comparator function */
-avl_node_t *avl_find_closest_impl(avl_node_t *key_node, avl_root_t *root) {
+avl_node_t *avl_find_closest_impl(avl_node_t *key_node, avl_root_t *root, bool larger) {
 	avl_node_t **out;
 	avl_find_getaddr(key_node, root, &out);
+	int comparison = compare_nodes(root, *out, key_node);
+	if (comparison < 0 && larger)
+		return avl_prevnext_impl(*out, true);
+	if (comparison > 0 && !larger)
+		return avl_prevnext_impl(*out, false);
 	return *out;
 }
 
@@ -212,8 +220,8 @@ avl_node_t *avl_insert_impl(avl_node_t *new_node, avl_root_t *root) {
 	return NULL;
 }
 
-/* returns pointer to deleted node or NULL if it wasn't found */
-avl_node_t *avl_delete_impl(avl_node_t *key_node, avl_root_t *root) {
+/* returns pointer to removed node or NULL if it wasn't found */
+avl_node_t *avl_remove_impl(avl_node_t *key_node, avl_root_t *root) {
 	avl_node_t **son, *node, *balance_start;
 	if (!avl_find_getaddr(key_node, root, &son))
 		return NULL;
@@ -273,8 +281,8 @@ void avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, avl_node_t
 	}
 
 	*out = (avl_iterator_t){
-		.cur = avl_find_closest_impl(low_to_high ? lower_bound : upper_bound, root),
-		.end = avl_find_closest_impl(low_to_high ? upper_bound : lower_bound, root),
+		.cur = avl_find_closest_impl(low_to_high ? lower_bound : upper_bound, root, low_to_high),
+		.end = avl_find_closest_impl(low_to_high ? upper_bound : lower_bound, root, !low_to_high),
 		.root = root,
 		.low_to_high = low_to_high
 	};

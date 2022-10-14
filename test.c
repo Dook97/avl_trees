@@ -14,34 +14,36 @@ typedef struct {
 
 AVL_DEFINE_ROOT(outer_root_t, outer_t);
 
-int comparator(outer_t *node1, outer_t *node2) {
-	if (node1->num == node2->num)
+int comparator(void *node1, void *node2) {
+	if (((outer_t *)node1)->num == ((outer_t *)node2)->num)
 		return 0;
-	if (node1->num <  node2->num)
+	if (((outer_t *)node1)->num <  ((outer_t *)node2)->num)
 		return -1;
 	return 1;
 }
 
-outer_t *extractor(avl_node_t *node) {
-	return AVL_GETITEM(node, outer_t, avl_node);
+void *extractor(avl_node_t *node) {
+	return AVL_UPCAST(node, outer_t, avl_node);
 }
 
 int main() {
-	outer_root_t root = AVL_NEWROOT(outer_root_t, extractor, comparator);
-	outer_t nodes[100];
+	outer_root_t root = AVL_NEW(outer_root_t, extractor, comparator);
 
+	outer_t node1 = { .num = 1 };
+	outer_t node2 = { .num = 2 };
+	outer_t node3 = { .num = 5 };
+	outer_t nodes[3] = {node1,node2,node3};
+
+	nodes[0] = node1;
+	nodes[1] = node2;
+	nodes[2] = node3;
 	for (size_t i = 0; i < arr_len(nodes); ++i) {
-		nodes[i].num = i;
-		avl_insert(&nodes[i].avl_node, &root);
+		avl_insert(&root, &nodes[i].avl_node);
 	}
 
-	outer_t test = { .num = 13 };
-	outer_t test2 = { .num = 35 };
+	outer_t test = { .num = 3 };
 
-	avl_iterator_t iterator = avl_get_iterator(&root, &test.avl_node, &test2.avl_node);
-	for (outer_t *out; (out = avl_advance(&iterator, &root));) {
+	avl_iterator_t iterator = avl_get_iterator(&root, NULL, &test.avl_node, false);
+	for (outer_t *out; (out = avl_advance(&root, &iterator)); )
 		printf("%ld\n", out->num);
-		if (avl_peek(&iterator, &root))
-			printf("%ld\n\n", avl_peek(&iterator, &root)->num);
-	}
 }
