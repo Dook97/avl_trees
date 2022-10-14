@@ -69,26 +69,29 @@ int dict_compare(void *item1, void *item2) {
 Or you could do something more interesting, like defining a lexicographical
 ordering on the members of your `dict_item_t`
 
-### Define an extractor function on `avl_node_t *`
+### Define upcaster and downcaster functions
 
 The internal implementation of the AVL tree obviously doesn't know about your
-`dict_item_t`. All it knows is the `avl_node_t` embedded in your type. For user
-comfort it is therefore necessary that you define an extractor function which
-returns pointer to your containng structure calculated *(through magic!)* from
-a pointer to its `avl_node_t` member.
+`dict_item_t`. All it knows is the `avl_node_t` embedded in your type. For your
+programming comfort it is therefore necessary that you define a pair of
+functions which serve to convert *(through magic!)* from one type to the other
 
 Don't worry though - the magic is already prepared for you, so all you need to
 do is:
 
 ```c
-void *dict_extract(avl_node_t *node) {
+void *dict_upcast(avl_node_t *node) {
 	return AVL_UPCAST(node, dict_item_t, avl_node);
+}
+
+avl_node_t *dict_downcast(void *item) {
+	return AVL_DOWNCAST(item, dict_item_t, avl_node);
 }
 ```
 
-The arguments to the `AVL_UPCAST` macro are as follows:
+The arguments to the macros are as follows:
 
-1. pointer to the `avl_node_t` member embedded in your struct
+1. pointer to the `avl_node_t` member embedded in your struct and pointer to your struct respectively
 2. the *type* of your dictionary item structure
 3. the name of the `avl_node_t` member embedded in your struct
 
@@ -117,21 +120,22 @@ With the helper structures ready we can *(finally)* start using the library.
 To create a new dictionary instance use:
 
 ```c
-dict_t dict = AVL_NEW(dict_t, dict_extract, dict_compare);
+dict_t dict = AVL_NEW(dict_t, dict_compare, dict_upcast, dict_downcast);
 ```
 
 The arguments to the `AVL_NEW` macro are:
 
 1. your dictionary type
-2. pointer to the extractor function
-3. pointer to the comparator function
+2. pointer to the comparator function
+3. pointer to the upcaster function
+3. pointer to the downcaster function
 
 ### Insert
 
 To insert `dict_item_t item` into the dictionary instance `dict_t dict` use `avl_insert`
 
 ```c
-dict_item_t *replaced = avl_insert(&dict, &item.avl_node);
+dict_item_t *replaced = avl_insert(&dict, &item);
 ```
 
 `avl_insert` places the item inside the dictionary **potentially replacing**
@@ -152,7 +156,7 @@ item whose `.key == 13` we would call `avl_find` thusly:
 
 ```c
 dict_item_t item = { .key = 13 };
-dict_item_t *found = avl_find(&dict, &item.avl_node);
+dict_item_t *found = avl_find(&dict, &item);
 ```
 
 `avl_find` returns a typed pointer to the found item or `NULL` if it wasn't found.
@@ -162,7 +166,7 @@ dict_item_t *found = avl_find(&dict, &item.avl_node);
 To remove `dict_item_t item` from `dict_t dict` use `avl_remove`
 
 ```c
-dict_item_t *removed = avl_remove(&dict, &item.avl_node);
+dict_item_t *removed = avl_remove(&dict, &item);
 ```
 
 `avl_remove` returns a typed pointer to the deleted item or `NULL` if the
@@ -173,7 +177,7 @@ item wasn't found in the dictionary.
 To check wheter `dict_item_t item` is present in `dict_t dict` use `avl_contains`
 
 ```c
-bool item_present = avl_contains(&dict, &item.avl_node);
+bool item_present = avl_contains(&dict, &item);
 ```
 
 `avl_contains` returns `1` if item was found otherwise `0`
@@ -198,7 +202,7 @@ To get the next item after `dict_item_t item` in order defined by the
 comparator function use `avl_next`
 
 ```c
-dict_item_t *next = avl_next(&dict, &item.avl_node);
+dict_item_t *next = avl_next(&dict, &item);
 ```
 
 `avl_next` returns a typed pointer to the next item in `dict`
@@ -235,19 +239,19 @@ dict_item_t lower = { .key = 13 };
 dict_item_t upper = { .key = 42 };
 
 /* get iterator over the interval 13..42 */
-avl_iterator_t iterator = avl_get_iterator(&dict, &lower.avl_node, &upper.avl_node);
+avl_iterator_t iterator = avl_get_iterator(&dict, &lower, &upper);
 
 /* get iterator over the interval 42..13 */
-avl_iterator_t reversed = avl_get_iterator(&dict, &lower.avl_node, &upper.avl_node, false);
+avl_iterator_t reversed = avl_get_iterator(&dict, &lower, &upper, false);
 
 /* get iterator over the interval 1..42 */
-avl_iterator_t half_open = avl_get_iterator(&dict, NULL, &upper.avl_node);
+avl_iterator_t half_open = avl_get_iterator(&dict, NULL, &upper);
 
 /* get iterator over the interval 1..100 */
 avl_iterator_t open = avl_get_iterator(&dict, NULL, NULL);
 
 /* empty iterator - legal but useless */
-avl_iterator_t empty = avl_get_iterator(&dict, &upper.avl_node, &lower.avl_node);
+avl_iterator_t empty = avl_get_iterator(&dict, &upper, &lower);
 ```
 
 ### Advancing an iterator
