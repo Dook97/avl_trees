@@ -27,12 +27,6 @@ possibly efficiency, which is a very C-spirited tradeoff to make I think 🙂
 Before you can start using the library there are some supporting structures
 which you need to create.
 
-### Include the library header
-
-```c
-#include "avl.h"
-```
-
 ### Define a dictionary item type
 
 The type can contain any members you wish and it has to contain *(at least)*
@@ -69,32 +63,6 @@ int dict_compare(void *item1, void *item2) {
 Or you could do something more interesting, like defining a lexicographical
 ordering on the members of your `dict_item_t`
 
-### Define upcaster and downcaster functions
-
-The internal implementation of the AVL tree obviously doesn't know about your
-`dict_item_t`. All it knows is the `avl_node_t` embedded in your type. For your
-programming comfort it is therefore necessary that you define a pair of
-functions which serve to convert *(through magic!)* from one type to the other
-
-Don't worry though - the magic is already prepared for you, so all you need to
-do is:
-
-```c
-void *dict_upcast(avl_node_t *node) {
-	return AVL_UPCAST(node, dict_item_t, avl_node);
-}
-
-avl_node_t *dict_downcast(void *item) {
-	return AVL_DOWNCAST(item, dict_item_t, avl_node);
-}
-```
-
-The arguments to the macros are as follows:
-
-1. pointer to the `avl_node_t` member embedded in your struct and pointer to your struct respectively
-2. the *type* of your dictionary item structure
-3. the name of the `avl_node_t` member embedded in your struct
-
 ### Define a dictionary type
 
 Simply call:
@@ -113,22 +81,22 @@ any type name you want - it doesn't have to be `dict_t`
 
 ## Interface
 
-With the helper structures ready we can *(finally)* start using the library.
+With the helper structures ready we can start using the library.
 
 ### Creating new dictionary instances
 
 To create a new dictionary instance use:
 
 ```c
-dict_t dict = AVL_NEW(dict_t, dict_compare, dict_upcast, dict_downcast);
+dict_t dict = AVL_NEW(dict_t, dict_item_t, avl_node, dict_compare);
 ```
 
 The arguments to the `AVL_NEW` macro are:
 
 1. your dictionary type
-2. pointer to the comparator function
-3. pointer to the upcaster function
-3. pointer to the downcaster function
+3. your dictionary item type
+3. name of your `avl_node_t` member
+4. pointer to the comparator function
 
 ### Insert
 

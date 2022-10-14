@@ -25,17 +25,11 @@ typedef enum avl_son_index { left, right } avl_son_index_t;
  */
 typedef int (*avl_comparator_t)(void *item1, void *item2);
 
-/* extract wrapper struct from avl_node */
-typedef void *(*avl_upcaster_t)(avl_node_t *node);
-
-typedef avl_node_t *(*avl_downcaster_t)(void *wrapper);
-
 /* internal structure representing root of the AVL tree */
 typedef struct {
 	avl_node_t *root_node;
 	avl_comparator_t comparator;
-	avl_upcaster_t upcaster;
-	avl_downcaster_t downcaster;
+	size_t offset; // offset from avl_node to its wrapper struct
 } avl_root_t;
 
 typedef struct {
@@ -84,12 +78,20 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 /* name under which avl_root will be embedded inside the user defined root struct */
 #define AVL_EMBED_NAMING_CONVENTION ___EMBED_avl_node_INSTANCE___
 
+/* upcast from struct member to its wrapper struct */
+#define AVL_UPCAST(ptr_to_avl_member, offset) \
+	((void *)(ptr_to_avl_member) - (offset))
+
+/* downcast from wrapper struct to its avl_node_t member */
+#define AVL_DOWNCAST(ptr_to_wrapper, offset) \
+	((void *)(ptr_to_wrapper) + (offset))
+
 /* calls function with return type avl_node_t* and yields its return value upcasted to the wrapper type */
 #define AVL_INVOKE_FUNCTION(root, function_name, ...) \
 	({ \
 		avl_node_t *__avl_func_output__ = (*(function_name))(__VA_ARGS__); \
 		(__avl_func_output__ == NULL) ? NULL : \
-			(__typeof__(*(root)->node_typeinfo__) *)((*((root)->AVL_EMBED_NAMING_CONVENTION.upcaster))(__avl_func_output__)); \
+			(__typeof__(*(root)->node_typeinfo__) *)(AVL_UPCAST(__avl_func_output__, (root)->AVL_EMBED_NAMING_CONVENTION.offset)); \
 	})
 
 /* --- USER FACING MACROS ------------------------------------- */
@@ -101,25 +103,13 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 		node_type_name node_typeinfo__[0]; \
 	} root_type_name
 
-/* upcast from struct member to its wrapper struct */
-#define AVL_UPCAST(ptr_to_avl_member, wrapper_type, avl_member_name) \
-	({ \
-		const __typeof__(((wrapper_type *)0)->avl_member_name) *__mptr = (ptr_to_avl_member); \
-		(wrapper_type *)((void *)__mptr - AVL_GET_MEMBER_OFFSET(wrapper_type, avl_member_name)); \
-	})
-
-/* downcast from wrapper struct to its avl_node_t member */
-#define AVL_DOWNCAST(ptr_to_wrapper, wrapper_type, avl_member_name) \
-	((avl_node_t *)&((wrapper_type *)(ptr_to_wrapper))->avl_member_name)
-
 /* macro to initialize the user defined root struct */
-#define AVL_NEW(root_type_name, _comparator, _upcaster, _downcaster) \
+#define AVL_NEW(root_type_name, wrapper_type, avl_member_name, _comparator) \
 	(root_type_name){ \
 		.AVL_EMBED_NAMING_CONVENTION = (avl_root_t){ \
 			.root_node  = NULL, \
 			.comparator = (_comparator), \
-			.upcaster  = (_upcaster), \
-			.downcaster = (_downcaster) \
+			.offset = AVL_GET_MEMBER_OFFSET(wrapper_type, avl_member_name) \
 		} \
 	}
 
@@ -127,28 +117,28 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 #define avl_find(root, item) \
 	({ \
 		__auto_type __safe_root = (root); \
-		avl_node_t *__safe_node = (*__safe_root->AVL_EMBED_NAMING_CONVENTION.downcaster)(item); \
+		avl_node_t *__safe_node = (avl_node_t *)(AVL_DOWNCAST((item), __safe_root->AVL_EMBED_NAMING_CONVENTION.offset)); \
 		AVL_INVOKE_FUNCTION(__safe_root, avl_find_impl, __safe_node, &__safe_root->AVL_EMBED_NAMING_CONVENTION); \
 	})
 
 #define avl_insert(root, item) \
 	({ \
 		__auto_type __safe_root = (root); \
-		avl_node_t *__safe_node = (*__safe_root->AVL_EMBED_NAMING_CONVENTION.downcaster)(item); \
+		avl_node_t *__safe_node = (avl_node_t *)(AVL_DOWNCAST((item), __safe_root->AVL_EMBED_NAMING_CONVENTION.offset)); \
 		AVL_INVOKE_FUNCTION(__safe_root, avl_insert_impl, __safe_node, &__safe_root->AVL_EMBED_NAMING_CONVENTION); \
 	})
 
 #define avl_remove(root, item) \
 	({ \
 		__auto_type __safe_root = (root); \
-		avl_node_t *__safe_node = (*__safe_root->AVL_EMBED_NAMING_CONVENTION.downcaster)(item); \
+		avl_node_t *__safe_node = (avl_node_t *)(AVL_DOWNCAST((item), __safe_root->AVL_EMBED_NAMING_CONVENTION.offset)); \
 		AVL_INVOKE_FUNCTION(__safe_root, avl_remove_impl, __safe_node, &__safe_root->AVL_EMBED_NAMING_CONVENTION); \
 	 })
 
 #define avl_contains(root, item) \
 	({ \
 		__auto_type __safe_root = (root); \
-		avl_node_t *__safe_node = (*__safe_root->AVL_EMBED_NAMING_CONVENTION.downcaster)(item); \
+		avl_node_t *__safe_node = (avl_node_t *)(AVL_DOWNCAST((item), __safe_root->AVL_EMBED_NAMING_CONVENTION.offset)); \
 		(avl_find_impl(__safe_node, &__safe_root->AVL_EMBED_NAMING_CONVENTION) != NULL); \
 	})
 
@@ -167,14 +157,14 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 #define avl_next(root, item) \
 	({ \
 		__auto_type __safe_root = (root); \
-		avl_node_t *__safe_node = (*__safe_root->AVL_EMBED_NAMING_CONVENTION.downcaster)(item); \
+		avl_node_t *__safe_node = (avl_node_t *)(AVL_DOWNCAST((item), __safe_root->AVL_EMBED_NAMING_CONVENTION.offset)); \
 		AVL_INVOKE_FUNCTION(__safe_root, avl_prevnext_impl, __safe_node, true); \
 	})
 
 #define avl_prev(root, item) \
 	({ \
 		__auto_type __safe_root = (root); \
-		avl_node_t *__safe_node = (*__safe_root->AVL_EMBED_NAMING_CONVENTION.downcaster)(item); \
+		avl_node_t *__safe_node = (avl_node_t *)(AVL_DOWNCAST((item), __safe_root->AVL_EMBED_NAMING_CONVENTION.offset)); \
 		AVL_INVOKE_FUNCTION(__safe_root, avl_prevnext_impl, __safe_node, false); \
 	})
 
@@ -182,8 +172,8 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 	({ \
 		bool __low_to_high = ((AVL_GET_ARGS_COUNT(__VA_ARGS__ ) == 1) ? __VA_ARGS__ : true); \
 		__auto_type __safe_root = (root); \
-		avl_node_t *__safe_lower = (*__safe_root->AVL_EMBED_NAMING_CONVENTION.downcaster)(lower_bound); \
-		avl_node_t *__safe_upper = (*__safe_root->AVL_EMBED_NAMING_CONVENTION.downcaster)(upper_bound); \
+		avl_node_t *__safe_lower = (avl_node_t *)(AVL_DOWNCAST((lower_bound), __safe_root->AVL_EMBED_NAMING_CONVENTION.offset)); \
+		avl_node_t *__safe_upper = (avl_node_t *)(AVL_DOWNCAST((upper_bound), __safe_root->AVL_EMBED_NAMING_CONVENTION.offset)); \
 		avl_iterator_t out; \
 		avl_get_iterator_impl(&__safe_root->AVL_EMBED_NAMING_CONVENTION, __safe_lower, __safe_upper, __low_to_high, &out); \
 		out; \

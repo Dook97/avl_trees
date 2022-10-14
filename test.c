@@ -23,14 +23,6 @@ int comparator(void *node1, void *node2) {
 	return 1;
 }
 
-void *upcaster(avl_node_t *node) {
-	return AVL_UPCAST(node, outer_t, avl_node);
-}
-
-avl_node_t *downcaster(void *item) {
-	return AVL_DOWNCAST(item, outer_t, avl_node);
-}
-
 void fill_random(outer_t nodes[]) {
 	srandom(time(NULL));
 	for (size_t i = 0; i < NODES_COUNT; ++i)
@@ -106,14 +98,14 @@ void test_iterator(outer_root_t *root, outer_t nodes[]) {
 
 	avl_iterator_t iter = avl_get_iterator(root, &nodes[0], &nodes[1]);
 	outer_t *prev = avl_advance(root, &iter);
-	for (outer_t *cur; cur = avl_advance(root, &iter);) {
+	for (outer_t *cur; (cur = avl_advance(root, &iter));) {
 		assert(comparator(prev, cur) < 0);
 		prev = cur;
 	}
 
 	iter = avl_get_iterator(root, &nodes[0], &nodes[1], false);
 	prev = avl_advance(root, &iter);
-	for (outer_t *cur; cur = avl_advance(root, &iter);) {
+	for (outer_t *cur; (cur = avl_advance(root, &iter));) {
 		assert(comparator(prev, cur) > 0);
 		prev = cur;
 	}
@@ -143,7 +135,7 @@ void run_test(test_func func, outer_root_t *root, outer_t nodes[], char *msg, in
 }
 
 int main() {
-	outer_root_t root = AVL_NEW(outer_root_t, comparator, upcaster, downcaster);
+	outer_root_t root = AVL_NEW(outer_root_t, outer_t, avl_node, comparator);
 	outer_t nodes[NODES_COUNT];
 
 	run_test(insert_random, &root, nodes, "insert_random", 10);
