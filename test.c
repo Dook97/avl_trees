@@ -34,9 +34,6 @@ int main() {
 	outer_t node3 = { .num = 5 };
 	outer_t nodes[3] = {node1,node2,node3};
 
-	nodes[0] = node1;
-	nodes[1] = node2;
-	nodes[2] = node3;
 	for (size_t i = 0; i < arr_len(nodes); ++i) {
 		avl_insert(&root, &nodes[i].avl_node);
 	}

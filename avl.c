@@ -169,13 +169,17 @@ static void replace_by_new(avl_node_t **replaced, avl_node_t *replacement) {
 	*replaced = replacement;
 }
 
+/* initialize newly inserted node */
 static void init_node(avl_node_t *node, avl_node_t *father) {
 	node->father = father;
 	node->sons[left] = node->sons[right] = NULL;
 	node->sign = 0;
 }
 
-static avl_node_t *closest(avl_node_t *key_node, avl_root_t *root, bool lower) {
+/* returns node closest to keynode according to the ordering defined by the comparator function
+ * either returns the lower or upper closest node
+ * if key_node itself is in the structure it is returned */
+static avl_node_t *get_closest_node(avl_node_t *key_node, avl_root_t *root, bool lower) {
 	avl_node_t *out = root->root_node;
 	avl_node_t *temp = root->root_node;
 	int comparison;
@@ -284,8 +288,8 @@ void avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, avl_node_t
 	}
 
 	*out = (avl_iterator_t){
-		.cur = closest(low_to_high ? lower_bound : upper_bound, root, !low_to_high),
-		.end = closest(low_to_high ? upper_bound : lower_bound, root,  low_to_high),
+		.cur = get_closest_node(low_to_high ? lower_bound : upper_bound, root, !low_to_high),
+		.end = get_closest_node(low_to_high ? upper_bound : lower_bound, root,  low_to_high),
 		.root = root,
 		.low_to_high = low_to_high
 	};

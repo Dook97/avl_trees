@@ -148,11 +148,11 @@ You need to create a `dict_item_t` instance with the members used by the
 comparator function set to the values you're looking for.
 
 So if we use `dict_item_t` as an example and presume that we're looking for an
-item whose `.key == 13` we would call the `avl_find` thusly:
+item whose `.key == 13` we would call `avl_find` thusly:
 
 ```c
-dict_item_t seeked = { .key = 13 };
-dict_item_t *found = avl_find(&dict, &seeked.avl_node);
+dict_item_t item = { .key = 13 };
+dict_item_t *found = avl_find(&dict, &item.avl_node);
 ```
 
 `avl_find` returns a typed pointer to the found item or `NULL` if it wasn't found.
@@ -222,7 +222,7 @@ arguments to this macro are as follows:
 1. pointer to the dictionary structure
 2. lower bound of the iterator interval
 3. upper bound of the iterator interval
-4. *[OPTIONAL]* a boolean value specifying increasing or decreasing order
+4. **[OPTIONAL]** a boolean value specifying increasing or decreasing order
 
 If a `NULL` is specified in place of one of the bounds the minimum and the
 maximum dictionary items will be used for the lower and upper bounds
