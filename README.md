@@ -108,7 +108,7 @@ The arguments to this macro are:
 The `dict_t` now represents the type of your dictionary. Of course you can use
 any type name you want - it doesn't have to be `dict_t`
 
----
+## Interface
 
 With the helper structures ready we can *(finally)* start using the library.
 
@@ -207,14 +207,14 @@ dict_item_t *next = avl_next(&dict, &item.avl_node);
 
 `avl_prev` shares the same interface as `avl_next`
 
-### Iterators
+## Iterators
 
 An iterator facility is provided by the library.
 
 For the following examples presume that we have a `dict_t dict` which contains
 100 items whose keys span from 1 to 100.
 
-#### Creating an iterator
+### Creating an iterator
 
 There are several ways of obtaining an iterator via `avl_get_iterator`. The
 arguments to this macro are as follows:
@@ -222,9 +222,9 @@ arguments to this macro are as follows:
 1. pointer to the dictionary structure
 2. lower bound of the iterator interval
 3. upper bound of the iterator interval
-4. [OPTIONAL] a boolean value specifying increasing or decreasing order
+4. *[OPTIONAL]* a boolean value specifying increasing or decreasing order
 
-If a NULL is specified in place of one of the bounds the minimum and the
+If a `NULL` is specified in place of one of the bounds the minimum and the
 maximum dictionary items will be used for the lower and upper bounds
 respectively.
 
@@ -250,7 +250,7 @@ avl_iterator_t open = avl_get_iterator(&dict, NULL, NULL);
 avl_iterator_t empty = avl_get_iterator(&dict, &upper.avl_node, &lower.avl_node);
 ```
 
-#### Advancing an iterator
+### Advancing an iterator
 
 To advance an iterator use `avl_advance`
 
@@ -265,7 +265,7 @@ The state of the iterator is modified by calling this macro. If you only wish to
 get the next item without advancing the iterator use `avl_peek` which otherwise
 shares the same interface as `avl_advance`
 
-#### Note on iterator invalidation
+### Note on iterator invalidation
 
 If the underlying dictionary gets modified after an iterator was created, the
 iterator is considered invalidated and any operations performed on it have an
