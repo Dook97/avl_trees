@@ -43,7 +43,7 @@ int main() {
 
 	outer_t test = { .num = 3 };
 
-	avl_iterator_t iterator = avl_get_iterator(&root, NULL, &test.avl_node, false);
+	avl_iterator_t iterator = avl_get_iterator(&root, NULL, &test.avl_node);
 	for (outer_t *out; (out = avl_advance(&root, &iterator)); )
 		printf("%ld\n", out->num);
 }

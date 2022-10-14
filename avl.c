@@ -1,8 +1,5 @@
 #include "avl.h"
 
-/* a readability measure - left & right serve as indicies into the sons member of avl_node_t */
-typedef enum Son { left, right } avl_son_t;
-
 /* --- MACROS ------------------------------------------------- */
 
 #define ABS(x) ({ __auto_type __temp_x = (x); __temp_x < 0 ? -__temp_x : __temp_x; })
@@ -178,24 +175,30 @@ static void init_node(avl_node_t *node, avl_node_t *father) {
 	node->sign = 0;
 }
 
+static avl_node_t *closest(avl_node_t *key_node, avl_root_t *root, bool lower) {
+	avl_node_t *out = root->root_node;
+	avl_node_t *temp = root->root_node;
+	int comparison;
+	while (temp != NULL) {
+		comparison = compare_nodes(root, key_node, temp);
+		if (comparison == 0)
+			return temp;
+		if ((lower && comparison < 0) || (!lower && comparison > 0)) {
+			temp = temp->sons[!lower];
+			continue;
+		}
+		out = temp;
+		temp = temp->sons[lower];
+	}
+	return out;
+}
+
 /* --- PUBLIC FUNCTIONS --------------------------------------- */
 
 /* returns pointer to node with given key or NULL if it wasn't found */
 avl_node_t *avl_find_impl(avl_node_t *key_node, avl_root_t *root) {
 	avl_node_t **out;
 	return avl_find_getaddr(key_node, root, &out) ? *out : NULL;
-}
-
-/* returns pointer to node closest to the one that was searched for as defined by the comparator function */
-avl_node_t *avl_find_closest_impl(avl_node_t *key_node, avl_root_t *root, bool larger) {
-	avl_node_t **out;
-	avl_find_getaddr(key_node, root, &out);
-	int comparison = compare_nodes(root, *out, key_node);
-	if (comparison < 0 && larger)
-		return avl_prevnext_impl(*out, true);
-	if (comparison > 0 && !larger)
-		return avl_prevnext_impl(*out, false);
-	return *out;
 }
 
 /* if a node with given key already existed in the tree it is replaced by
@@ -281,8 +284,8 @@ void avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, avl_node_t
 	}
 
 	*out = (avl_iterator_t){
-		.cur = avl_find_closest_impl(low_to_high ? lower_bound : upper_bound, root, low_to_high),
-		.end = avl_find_closest_impl(low_to_high ? upper_bound : lower_bound, root, !low_to_high),
+		.cur = closest(low_to_high ? lower_bound : upper_bound, root, !low_to_high),
+		.end = closest(low_to_high ? upper_bound : lower_bound, root,  low_to_high),
 		.root = root,
 		.low_to_high = low_to_high
 	};

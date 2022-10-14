@@ -14,6 +14,9 @@ typedef struct avl_node {
 	int sign; // right subtree depth - left subtree depth
 } avl_node_t;
 
+/* a readability measure - left & right serve as indicies into the sons member of avl_node_t */
+typedef enum avl_son_index { left, right } avl_son_index_t;
+
 /* a comparator function intended for structs wrapping avl_node
  *
  * returns <0 if item1 < item2
@@ -42,9 +45,6 @@ typedef struct {
 
 /* returns pointer to node with given key or NULL if it wasn't found */
 avl_node_t *avl_find_impl(avl_node_t *key_node, avl_root_t *root);
-
-/* returns pointer to node closest to the one that was searched for as defined by the comparator function */
-avl_node_t *avl_find_closest_impl(avl_node_t *key_node, avl_root_t *root, bool larger);
 
 /* if a node with given key already existed in the tree it is replaced by
  * new_node and the pointer to it is returned, otherwise the node is inserted

@@ -66,8 +66,8 @@ int dict_compare(void *item1, void *item2) {
 }
 ```
 
-Or you could do something more interesting, like lexicographical ordering on
-the members of your `dict_item_t`
+Or you could do something more interesting, like defining a lexicographical
+ordering on the members of your `dict_item_t`
 
 ### Define an extractor function on `avl_node_t *`
 
@@ -137,7 +137,7 @@ avl_insert(&dict, &item.avl_node);
 `avl_insert` places the item inside the dictionary **potentially replacing**
 any item defined equal by the comparator function.
 
-It returns a **typed** pointer - in this case `dict_item_t *` - to the
+It returns a typed pointer - in this case `dict_item_t *` - to the
 replaced item or `NULL` if no item was replaced.
 
 ### Find
@@ -155,7 +155,7 @@ dict_item_t seeked = { .key = 13 };
 dict_item_t *found = avl_find(&dict, &seeked.avl_node);
 ```
 
-`avl_find` returns a **typed** pointer to the found item or `NULL` if it wasn't found.
+`avl_find` returns a typed pointer to the found item or `NULL` if it wasn't found.
 
 ### Remove
 
@@ -165,7 +165,7 @@ To remove `dict_item_t item` from `dict_t dict` use `avl_remove`
 avl_remove(&dict, &item.avl_node);
 ```
 
-`avl_remove` returns a **typed** pointer to the deleted item or `NULL` if the
+`avl_remove` returns a typed pointer to the deleted item or `NULL` if the
 item wasn't found in the dictionary.
 
 ### Contains
@@ -180,13 +180,13 @@ bool item_present = avl_contains(&dict, &item.avl_node);
 
 ### Min
 
-To get the minimal item from `dict_t dict` use `avl_min`
+To get minimal item from `dict_t dict` use `avl_min`
 
 ```c
 dict_item_t *min = avl_min(&dict);
 ```
 
-`avl_min` returns a **typed** pointer to the minimal item in `dict`
+`avl_min` returns a typed pointer to the minimal item in `dict`
 
 ### Max
 
@@ -194,14 +194,14 @@ dict_item_t *min = avl_min(&dict);
 
 ### Next
 
-To get the next item after `dict_item_t item` from `dict_t dict` as defined by
-the comparator function use `avl_next`
+To get the next item after `dict_item_t item` in order defined by the
+comparator function use `avl_next`
 
 ```c
 dict_item_t *next = avl_next(&dict, &item.avl_node);
 ```
 
-`avl_next` returns a **typed** pointer to the next item in `dict`
+`avl_next` returns a typed pointer to the next item in `dict`
 
 ### Previous
 
@@ -258,7 +258,7 @@ To advance an iterator use `avl_advance`
 dict_item_t *next = avl_advance(&dict, &iterator);
 ```
 
-`avl_advance` returns a **typed** pointer to the next node yielded by the
+`avl_advance` returns a typed pointer to the next node yielded by the
 iterator. If a `NULL` is returned it means the iterator has been depleted.
 
 The state of the iterator is modified by calling this macro. If you only wish to
