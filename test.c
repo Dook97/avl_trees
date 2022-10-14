@@ -39,6 +39,9 @@ int main() {
 	outer_t test2 = { .num = 35 };
 
 	avl_iterator_t iterator = avl_get_iterator(&root, &test.avl_node, &test2.avl_node);
-	for (outer_t *out; (out = avl_advance(&iterator, &root));)
+	for (outer_t *out; (out = avl_advance(&iterator, &root));) {
 		printf("%ld\n", out->num);
+		if (avl_peek(&iterator, &root))
+			printf("%ld\n\n", avl_peek(&iterator, &root)->num);
+	}
 }

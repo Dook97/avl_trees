@@ -155,6 +155,9 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 		AVL_INVOKE_FUNCTION(__safe_root, avl_delete_impl, __safe_node, &__safe_root->AVL_EMBED_NAMING_CONVENTION); \
 	 })
 
+#define avl_contains(node, root) \
+	avl_find_impl((node), (root)->AVL_EMBED_NAMING_CONVENTION) != NULL
+
 #define avl_min(root) \
 	({ \
 		__auto_type __safe_root = (root); \
