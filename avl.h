@@ -80,11 +80,18 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 
 /* upcast from struct member to its wrapper struct */
 #define AVL_UPCAST(ptr_to_avl_member, offset) \
-	((void *)(ptr_to_avl_member) - (offset))
+	({ \
+		void *__safe_ptr = (ptr_to_avl_member); \
+		(__safe_ptr == NULL) ? NULL : ((void *)(__safe_ptr) - (offset)); \
+	})
+
 
 /* downcast from wrapper struct to its avl_node_t member */
 #define AVL_DOWNCAST(ptr_to_wrapper, offset) \
-	((void *)(ptr_to_wrapper) + (offset))
+	({ \
+		void *__safe_ptr = (ptr_to_wrapper); \
+		(__safe_ptr == NULL) ? NULL : ((void *)(__safe_ptr) + (offset)); \
+	})
 
 /* calls function with return type avl_node_t* and yields its return value upcasted to the wrapper type */
 #define AVL_INVOKE_FUNCTION(root, function_name, ...) \

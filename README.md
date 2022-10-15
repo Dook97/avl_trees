@@ -182,9 +182,6 @@ dict_item_t *next = avl_next(&dict, &item);
 
 An iterator facility is provided by the library.
 
-For the following examples presume that we have a `dict_t dict` which contains
-100 items whose keys span from 1 to 100.
-
 ### Creating an iterator
 
 There are several ways of obtaining an iterator via `avl_get_iterator`. The

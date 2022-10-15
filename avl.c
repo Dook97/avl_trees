@@ -176,11 +176,10 @@ static void init_node(avl_node_t *node, avl_node_t *father) {
 	node->sign = 0;
 }
 
-/* returns node closest to keynode according to the ordering defined by the comparator function
- * either returns the lower or upper closest node
+/* returns closest lower/higher node according to the ordering defined by the comparator function
  * if key_node itself is in the structure it is returned */
 static avl_node_t *get_closest_node(avl_node_t *key_node, avl_root_t *root, bool lower) {
-	avl_node_t *out = root->root_node;
+	avl_node_t *out = NULL;
 	avl_node_t *temp = root->root_node;
 	int comparison;
 	while (temp != NULL) {
@@ -259,8 +258,12 @@ avl_node_t *avl_minmax_impl(avl_root_t *root, bool max) {
 
 /* get previous or next node according to the ordering specified by the comparator function */
 avl_node_t *avl_prevnext_impl(avl_node_t *node, bool next) {
-	if (node->sons[next] != NULL)
-		return *minmax_of_subtree(node, next);
+	if (node->sons[next] != NULL) {
+		node = node->sons[next];
+		while (node->sons[!next])
+			node = node->sons[!next];
+		return node;
+	}
 	while (node->father != NULL && node == node->father->sons[next])
 		node = node->father;
 	return node->father;
@@ -270,29 +273,27 @@ avl_node_t *avl_prevnext_impl(avl_node_t *node, bool next) {
 void avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, avl_node_t *upper_bound,
 		bool low_to_high, avl_iterator_t *out) {
 
-	avl_node_t *min, *max;
-	min = avl_minmax_impl(root, false);
-	max = avl_minmax_impl(root, true);
+	out->root = root;
+	out->low_to_high = low_to_high;
 
-	if (lower_bound == NULL)
-		lower_bound = min;
-	if (upper_bound == NULL)
-		upper_bound = max;
+	avl_node_t *min = avl_minmax_impl(root, false);
+	avl_node_t *max = avl_minmax_impl(root, true);
+
+	avl_node_t *lower = (lower_bound == NULL) ? min : get_closest_node(lower_bound, root, false);
+	avl_node_t *upper = (upper_bound == NULL) ? max : get_closest_node(upper_bound, root, true);
+
+	out->cur = low_to_high ? lower : upper;
+	out->end = low_to_high ? upper : lower;
 
 	/* if an invalid range is specified invalidate the iterator */
-	if (compare_nodes(root, lower_bound, upper_bound) > 0
-		|| compare_nodes(root, lower_bound, max)  > 0
-		|| compare_nodes(root, upper_bound, min)  < 0) {
+       if (lower == NULL || upper == NULL
+		|| (upper_bound != NULL && compare_nodes(root, lower, upper_bound) > 0)
+		|| (lower_bound != NULL && compare_nodes(root, upper, lower_bound) < 0)
+		|| (lower_bound != NULL && compare_nodes(root, lower_bound, max)   > 0)
+		|| (upper_bound != NULL && compare_nodes(root, upper_bound, min)   < 0)) {
 		out->cur = NULL;
 		return;
 	}
-
-	*out = (avl_iterator_t){
-		.cur = get_closest_node(low_to_high ? lower_bound : upper_bound, root, !low_to_high),
-		.end = get_closest_node(low_to_high ? upper_bound : lower_bound, root,  low_to_high),
-		.root = root,
-		.low_to_high = low_to_high
-	};
 }
 
 /* get next node from iterator */

@@ -9,7 +9,7 @@
 #define NODES_COUNT 200000
 
 typedef struct {
-	long num;
+	int num;
 	avl_node_t avl_node;
 } outer_t;
 
@@ -24,7 +24,6 @@ int comparator(void *node1, void *node2) {
 }
 
 void fill_random(outer_t nodes[]) {
-	srandom(time(NULL));
 	for (size_t i = 0; i < NODES_COUNT; ++i)
 		nodes[i].num = random();
 }
@@ -110,9 +109,17 @@ void test_iterator(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	insert_random(root, nodes);
 
+	size_t offset = root->AVL_EMBED_NAMING_CONVENTION.offset;
+
 	avl_iterator_t iter = avl_get_iterator(root, &nodes[0], &nodes[1]);
+
+	assert(avl_peek(root, &iter) == NULL || comparator(avl_peek(root, &iter), &nodes[0])   == 0);
+	assert(avl_peek(root, &iter) == NULL || comparator(AVL_UPCAST(iter.end, offset), &nodes[1]) == 0);
+
 	outer_t *prev = avl_advance(root, &iter);
 	for (outer_t *cur; (cur = avl_advance(root, &iter));) {
+		long end = ((outer_t *)AVL_UPCAST(iter.end, offset))->num;
+		assert(cur->num <= end);
 		assert(comparator(prev, cur) < 0);
 		prev = cur;
 	}
@@ -120,6 +127,27 @@ void test_iterator(outer_root_t *root, outer_t nodes[]) {
 	iter = avl_get_iterator(root, &nodes[0], &nodes[1], false);
 	prev = avl_advance(root, &iter);
 	for (outer_t *cur; (cur = avl_advance(root, &iter));) {
+		long end = ((outer_t *)AVL_UPCAST(iter.end, offset))->num;
+		assert(cur->num >= end);
+		assert(comparator(prev, cur) > 0);
+		prev = cur;
+	}
+
+	outer_t low = { .num = 1000 };
+	outer_t hig = { .num = 9999 };
+	iter = avl_get_iterator(root, &low, &hig);
+	for (outer_t *cur; (cur = avl_advance(root, &iter));) {
+		long end = ((outer_t *)AVL_UPCAST(iter.end, offset))->num;
+		assert(cur->num <= end);
+		assert(comparator(cur, &low) >= 0);
+		assert(comparator(cur, &hig) <= 0);
+	}
+
+	iter = avl_get_iterator(root, &low, &hig, false);
+	prev = avl_advance(root, &iter);
+	for (outer_t *cur; (cur = avl_advance(root, &iter));) {
+		long end = ((outer_t *)AVL_UPCAST(iter.end, offset))->num;
+		assert(cur->num >= end);
 		assert(comparator(prev, cur) > 0);
 		prev = cur;
 	}
@@ -131,6 +159,9 @@ void test_iterator(outer_root_t *root, outer_t nodes[]) {
 	for (size_t i = 0; i < NODES_COUNT; ++i)
 		assert(i == avl_advance(root, &iter)->num);
 
+	outer_t under = { .num = -100 };
+	iter = avl_get_iterator(root, &under, &nodes[0]);
+	assert(avl_peek(root, &iter) == avl_min(root));
 
 	iter = avl_get_iterator(root, &nodes[NODES_COUNT - 1], &nodes[0]);
 	assert(avl_advance(root, &iter) == NULL);
@@ -142,23 +173,25 @@ void run_test(test_func func, outer_root_t *root, outer_t nodes[], char *msg, in
 	for (int i = 1; i <= repeat; ++i) {
 		printf("\r");
 		fflush(stdout);
-		printf("%s\t\t%2d/%d", msg, i, repeat);
+		printf("%-25s%2d/%d", msg, i, repeat);
 		(*func)(root, nodes);
 	}
-	puts("\t\033[1;32mOK\033[0m");
+	puts("  \033[1;32mOK\033[0m");
 }
 
 int main() {
+	srandom(time(NULL));
 	outer_root_t root = AVL_NEW(outer_root_t, outer_t, avl_node, comparator);
 	outer_t nodes[NODES_COUNT];
 
-	run_test(insert_random, &root, nodes, "test_insert", 10);
-	run_test(test_remove, &root, nodes, "test_remove", 10);
-	run_test(test_find, &root, nodes, "test_find", 10);
-	run_test(test_min, &root, nodes, "test_min", 10);
-	run_test(test_max, &root, nodes, "test_max", 10);
-	run_test(test_next, &root, nodes, "test_next", 10);
-	run_test(test_prev, &root, nodes, "test_prev", 10);
-	run_test(test_iterator, &root, nodes, "test_iterator", 10);
+	run_test(insert_random, &root, nodes, "random_insert", 10);
+	run_test(insert_linear, &root, nodes, "linear_insert", 10);
+	run_test(test_remove, &root, nodes, "remove", 10);
+	run_test(test_find, &root, nodes, "find", 10);
+	run_test(test_min, &root, nodes, "min", 10);
+	run_test(test_max, &root, nodes, "max", 10);
+	run_test(test_next, &root, nodes, "next", 10);
+	run_test(test_prev, &root, nodes, "prev", 10);
+	run_test(test_iterator, &root, nodes, "iterator", 10);
 	puts("All tests passed successfully! 👍");
 }
