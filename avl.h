@@ -23,7 +23,7 @@ typedef enum avl_son_index { left, right } avl_son_index_t;
  * returns  0 if item1 = item2
  * returns >0 if item1 > item2
  */
-typedef int (*avl_comparator_t)(void *item1, void *item2);
+typedef int (*avl_comparator_t)(const void *item1, const void *item2);
 
 /* internal structure representing root of the AVL tree */
 typedef struct {
@@ -81,7 +81,7 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 /* upcast from struct member to its wrapper struct */
 #define AVL_UPCAST(ptr_to_avl_member, offset) \
 	({ \
-		void *__safe_ptr = (ptr_to_avl_member); \
+		avl_node_t *__safe_ptr = (ptr_to_avl_member); \
 		(__safe_ptr == NULL) ? NULL : ((void *)__safe_ptr - (offset)); \
 	})
 
@@ -111,12 +111,12 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 	} root_type_name
 
 /* macro to initialize the user defined root struct */
-#define AVL_NEW(root_type_name, wrapper_type, avl_member_name, _comparator) \
+#define AVL_NEW(root_type_name, avl_member_name, _comparator) \
 	(root_type_name){ \
 		.AVL_EMBED_NAMING_CONVENTION = (avl_root_t){ \
 			.root_node  = NULL, \
 			.comparator = (_comparator), \
-			.offset = AVL_GET_MEMBER_OFFSET(wrapper_type, avl_member_name) \
+			.offset = AVL_GET_MEMBER_OFFSET(__typeof__(*((root_type_name *)0xdeadbeef)->node_typeinfo__), avl_member_name) \
 		} \
 	}
 

@@ -42,7 +42,7 @@ typedef struct {
 
 ### Define a comparator function on `dict_item_t`
 
-Its signature has to be `int (*)(void *, void *)` and it has to return:
+Its signature has to be `int (*)(const void *, const void *)` and it has to return:
 
 ```
 <0 if item1 < item2
@@ -54,7 +54,7 @@ For example if you already have such a comparator function `TKeyComparator`
 defined on `TKey` you can do the following:
 
 ```c
-int dict_compare(void *item1, void *item2) {
+int dict_compare(const void *item1, const void *item2) {
 	return TKeyComparator(((dict_item_t *)item1)->key, ((dict_item_t *)item2)->key);
 }
 ```
@@ -87,15 +87,14 @@ With the helper structures ready we can start using the library.
 To create a new dictionary instance use:
 
 ```c
-dict_t dict = AVL_NEW(dict_t, dict_item_t, avl_node, dict_compare);
+dict_t dict = AVL_NEW(dict_t, avl_node, dict_compare);
 ```
 
 The arguments to the `AVL_NEW` macro are:
 
 1. your dictionary type
-3. your dictionary item type
-3. name of your `avl_node_t` member
-4. pointer to the comparator function
+2. name of your `avl_node_t` member
+3. pointer to your comparator function
 
 ### Insert
 
@@ -128,7 +127,7 @@ dict_item_t *found = avl_find(&dict, &item);
 
 `avl_find` returns a typed pointer to the found item or `NULL` if it wasn't found.
 
-### delete
+### Delete
 
 To delete `dict_item_t item` from `dict_t dict` use `avl_delete`
 

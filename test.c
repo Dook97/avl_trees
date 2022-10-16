@@ -15,7 +15,7 @@ typedef struct {
 
 AVL_DEFINE_ROOT(outer_root_t, outer_t);
 
-int comparator(void *node1, void *node2) {
+int comparator(const void *node1, const void *node2) {
 	if (((outer_t *)node1)->num == ((outer_t *)node2)->num)
 		return 0;
 	if (((outer_t *)node1)->num <  ((outer_t *)node2)->num)
@@ -229,7 +229,7 @@ void run_test(test_func func, outer_root_t *root, outer_t nodes[], char *msg, in
 
 int main() {
 	srandom(time(NULL));
-	outer_root_t root = AVL_NEW(outer_root_t, outer_t, avl_node, comparator);
+	outer_root_t root = AVL_NEW(outer_root_t, avl_node, comparator);
 	outer_t nodes[NODES_COUNT];
 
 	run_test(insert_random, &root, nodes, "random_insert", 10);
