@@ -128,15 +128,15 @@ dict_item_t *found = avl_find(&dict, &item);
 
 `avl_find` returns a typed pointer to the found item or `NULL` if it wasn't found.
 
-### Remove
+### delete
 
-To remove `dict_item_t item` from `dict_t dict` use `avl_remove`
+To delete `dict_item_t item` from `dict_t dict` use `avl_delete`
 
 ```c
-dict_item_t *removed = avl_remove(&dict, &item);
+dict_item_t *deleted = avl_delete(&dict, &item);
 ```
 
-`avl_remove` returns a typed pointer to the deleted item or `NULL` if the
+`avl_delete` returns a typed pointer to the deleted item or `NULL` if the
 item wasn't found in the dictionary.
 
 ### Contains

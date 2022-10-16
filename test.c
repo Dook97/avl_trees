@@ -35,7 +35,7 @@ void fill_linear(outer_t nodes[]) {
 
 void remove_all(outer_root_t *root, outer_t nodes[]) {
 	for (size_t i = 0; i < NODES_COUNT; ++i) {
-		outer_t *deleted = avl_remove(root, &nodes[i]);
+		outer_t *deleted = avl_delete(root, &nodes[i]);
 		assert(deleted == NULL || comparator(deleted, &nodes[i]) == 0);
 		assert(!avl_contains(root, &nodes[i]));
 	}

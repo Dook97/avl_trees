@@ -42,9 +42,9 @@ static bool avl_find_getaddr(avl_node_t *key_node, avl_root_t *root, avl_node_t 
 	return *current_node != NULL && compare_nodes(root, *current_node, key_node) == 0;
 }
 
-/* used exclusively inside avl_remove - DO NOT USE ELSEWHERE
+/* used exclusively inside avl_delete - DO NOT USE ELSEWHERE
  * handles changes of pointers between node with two sons and it's replacement
- * such removed node is replaced with minimal node from it's right subtree
+ * such deleted node is replaced with minimal node from it's right subtree
  * arguments are pointers to fathers' pointers to the nodes */
 static void replace_node(avl_node_t **replaced, avl_node_t **replacement) {
 	(*replacement)->sign = (*replaced)->sign;
@@ -120,14 +120,14 @@ static avl_node_t **get_fathers_ptr(avl_node_t *node, avl_root_t *root) {
 	return (node->father->sons[left] == node) ? &node->father->sons[left] : &node->father->sons[right];
 }
 
-/* node points to father of removed/inserted node
- * after a successful remove/insert traverses the path upward, updates signs
+/* node points to father of deleted/inserted node
+ * after a successful delete/insert traverses the path upward, updates signs
  * and carries out any necessary rotations */
-static void balance(avl_node_t *node, avl_root_t *root, bool from_left, bool after_remove) {
+static void balance(avl_node_t *node, avl_root_t *root, bool from_left, bool after_delete) {
 	while (node != NULL) {
-		bool newbool = after_remove ^ !from_left;
+		bool newbool = after_delete ^ !from_left;
 		node->sign += (newbool ? +1 : -1);
-		if (ABS(node->sign) == after_remove)
+		if (ABS(node->sign) == after_delete)
 			return;
 
 		avl_node_t *father = node->father;
@@ -139,7 +139,7 @@ static void balance(avl_node_t *node, avl_root_t *root, bool from_left, bool aft
 			if (ABS(node->sign + (*son)->sign) == 1)
 				rotate(son, newbool);
 			rotate(get_fathers_ptr(node, root), !newbool);
-			if (!after_remove || prevsign == 0)
+			if (!after_delete || prevsign == 0)
 				return;
 		}
 
@@ -239,8 +239,8 @@ avl_node_t *avl_insert_impl(avl_node_t *new_node, avl_root_t *root) {
 	return NULL;
 }
 
-/* returns pointer to removed node or NULL if it wasn't found */
-avl_node_t *avl_remove_impl(avl_node_t *key_node, avl_root_t *root) {
+/* returns pointer to deleted node or NULL if it wasn't found */
+avl_node_t *avl_delete_impl(avl_node_t *key_node, avl_root_t *root) {
 	avl_node_t **son, *node, *balance_start;
 	if (!avl_find_getaddr(key_node, root, &son))
 		return NULL;

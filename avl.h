@@ -48,8 +48,8 @@ avl_node_t *avl_find_impl(avl_node_t *key_node, avl_root_t *root);
  * and NULL is returned */
 avl_node_t *avl_insert_impl(avl_node_t *new_node, avl_root_t *root);
 
-/* returns pointer to removed node or NULL if it wasn't found */
-avl_node_t *avl_remove_impl(avl_node_t *key_node, avl_root_t *root);
+/* returns pointer to deleted node or NULL if it wasn't found */
+avl_node_t *avl_delete_impl(avl_node_t *key_node, avl_root_t *root);
 
 /* get minimal or maximal node according to the ordering specified by the comparator function */
 avl_node_t *avl_minmax_impl(avl_root_t *root, bool max);
@@ -135,11 +135,11 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 		AVL_INVOKE_FUNCTION(__safe_root, avl_insert_impl, __safe_node, &__safe_root->AVL_EMBED_NAMING_CONVENTION); \
 	})
 
-#define avl_remove(root, item) \
+#define avl_delete(root, item) \
 	({ \
 		__auto_type __safe_root = (root); \
 		avl_node_t *__safe_node = (AVL_DOWNCAST((item), __safe_root->AVL_EMBED_NAMING_CONVENTION.offset)); \
-		AVL_INVOKE_FUNCTION(__safe_root, avl_remove_impl, __safe_node, &__safe_root->AVL_EMBED_NAMING_CONVENTION); \
+		AVL_INVOKE_FUNCTION(__safe_root, avl_delete_impl, __safe_node, &__safe_root->AVL_EMBED_NAMING_CONVENTION); \
 	 })
 
 #define avl_contains(root, item) \
