@@ -253,7 +253,8 @@ avl_node_t *avl_remove_impl(avl_node_t *key_node, avl_root_t *root) {
 
 /* get minimal or maximal node according to the ordering specified by the comparator function */
 avl_node_t *avl_minmax_impl(avl_root_t *root, bool max) {
-	return *minmax_of_subtree(&(avl_node_t){{root->root_node, root->root_node}}, !max);
+	avl_node_t uber_root = { .sons = {root->root_node, root->root_node} };
+	return *minmax_of_subtree(&uber_root, !max);
 }
 
 /* get previous or next node according to the ordering specified by the comparator function */

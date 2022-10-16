@@ -174,6 +174,8 @@ dict_item_t *next = avl_next(&dict, &item);
 
 `avl_next` returns a typed pointer to the next item in `dict`
 
+Calling next on an item which is not in the structure results in undefined behaviour.
+
 ### Previous
 
 `avl_prev` shares the same interface as `avl_next`

@@ -9,7 +9,7 @@
 #define NODES_COUNT 200000
 
 typedef struct {
-	int num;
+	long num;
 	avl_node_t avl_node;
 } outer_t;
 
@@ -79,12 +79,28 @@ void test_min(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	insert_linear(root, nodes);
 	assert(comparator(avl_min(root), &nodes[0]) == 0);
+
+	remove_all(root, nodes);
+	insert_random(root, nodes);
+	outer_t min = { .num = LONG_MAX };
+	for (size_t i = 0; i < NODES_COUNT; ++i)
+		if (comparator(&min, &nodes[i]) > 0)
+			min = nodes[i];
+	assert(comparator(avl_min(root), &min) == 0);
 }
 
 void test_max(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	insert_linear(root, nodes);
 	assert(comparator(avl_max(root), &nodes[NODES_COUNT - 1]) == 0);
+
+	remove_all(root, nodes);
+	insert_random(root, nodes);
+	outer_t max = { .num = LONG_MIN };
+	for (size_t i = 0; i < NODES_COUNT; ++i)
+		if (comparator(&max, &nodes[i]) < 0)
+			max = nodes[i];
+	assert(comparator(avl_max(root), &max) == 0);
 }
 
 void test_next(outer_root_t *root, outer_t nodes[]) {
