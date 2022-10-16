@@ -6,7 +6,7 @@
 #include <limits.h>
 
 #define arr_len(arr) (sizeof(arr) / sizeof(arr[0]))
-#define NODES_COUNT 200000
+#define NODES_COUNT 100000
 
 typedef struct {
 	long num;
@@ -110,6 +110,22 @@ void test_next(outer_root_t *root, outer_t nodes[]) {
 		outer_t *next = avl_next(root, &nodes[i]);
 		assert((next == NULL && i == NODES_COUNT - 1) || next->num == i + 1);
 	}
+
+	assert(avl_next(root, &nodes[NODES_COUNT - 1]) == NULL);
+
+	remove_all(root, nodes);
+	insert_random(root, nodes);
+	outer_t nodes_copy[NODES_COUNT];
+	for (size_t i = 0; i < NODES_COUNT; ++i)
+		nodes_copy[i] = nodes[i];
+	qsort(nodes_copy, NODES_COUNT, sizeof(outer_t), comparator);
+	outer_t *cur = avl_min(root);
+	for (size_t i = 0; i < NODES_COUNT; ++i) {
+		if (comparator(&nodes_copy[i], &nodes_copy[i+1]) == 0)
+			continue;
+		assert(comparator(&nodes_copy[i], cur) == 0);
+		cur = avl_next(root, cur);
+	}
 }
 
 void test_prev(outer_root_t *root, outer_t nodes[]) {
@@ -118,6 +134,22 @@ void test_prev(outer_root_t *root, outer_t nodes[]) {
 	for (size_t i = 0; i < NODES_COUNT; ++i) {
 		outer_t *prev = avl_prev(root, &nodes[i]);
 		assert((prev == NULL && i == 0) || prev->num == i - 1);
+	}
+
+	assert(avl_prev(root, &nodes[0]) == NULL);
+
+	remove_all(root, nodes);
+	insert_random(root, nodes);
+	outer_t nodes_copy[NODES_COUNT];
+	for (size_t i = 0; i < NODES_COUNT; ++i)
+		nodes_copy[i] = nodes[i];
+	qsort(nodes_copy, NODES_COUNT, sizeof(outer_t), comparator);
+	outer_t *cur = avl_max(root);
+	for (size_t i = NODES_COUNT - 1; i > 0; --i) {
+		if (i > 0 && comparator(&nodes_copy[i], &nodes_copy[i-1]) == 0)
+			continue;
+		assert(comparator(&nodes_copy[i], cur) == 0);
+		cur = avl_prev(root, cur);
 	}
 }
 
