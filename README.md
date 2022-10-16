@@ -161,7 +161,7 @@ dict_item_t *min = avl_min(&dict);
 
 ### Max
 
-`avl_max` shares the same interface as `avl_min`
+`avl_max` is used analogously to `avl_min`
 
 ### Next
 
@@ -172,13 +172,15 @@ comparator function use `avl_next`
 dict_item_t *next = avl_next(&dict, &item);
 ```
 
-`avl_next` returns a typed pointer to the next item in `dict`
+`item` doesn't have to be in the dictionary in order for `avl_next` to work.
+This can be handy if you wish to find the lowest value above some threshold,
+eg: *"Which of our cutomers have recently turned 40?"*
 
-Calling next on an item which is not in the structure results in undefined behaviour.
+`avl_next` returns a typed pointer to the next larger item in `dict`
 
 ### Previous
 
-`avl_prev` shares the same interface as `avl_next`
+`avl_prev` is used analogously to `avl_next`
 
 ## Iterators
 

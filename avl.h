@@ -55,7 +55,7 @@ avl_node_t *avl_remove_impl(avl_node_t *key_node, avl_root_t *root);
 avl_node_t *avl_minmax_impl(avl_root_t *root, bool max);
 
 /* get previous or next node according to the ordering specified by the comparator function */
-avl_node_t *avl_prevnext_impl(avl_node_t *node, bool next);
+avl_node_t *avl_prevnext_impl(avl_root_t *root, avl_node_t *key_node, bool next);
 
 /* get new iterator */
 void avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, avl_node_t *upper_bound,
@@ -82,7 +82,7 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 #define AVL_UPCAST(ptr_to_avl_member, offset) \
 	({ \
 		void *__safe_ptr = (ptr_to_avl_member); \
-		(__safe_ptr == NULL) ? NULL : ((void *)(__safe_ptr) - (offset)); \
+		(__safe_ptr == NULL) ? NULL : ((void *)__safe_ptr - (offset)); \
 	})
 
 
@@ -90,7 +90,7 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 #define AVL_DOWNCAST(ptr_to_wrapper, offset) \
 	({ \
 		void *__safe_ptr = (ptr_to_wrapper); \
-		(__safe_ptr == NULL) ? NULL : ((void *)(__safe_ptr) + (offset)); \
+		(__safe_ptr == NULL) ? NULL : ((void *)__safe_ptr + (offset)); \
 	})
 
 /* calls function with return type avl_node_t* and yields its return value upcasted to the wrapper type */
@@ -153,14 +153,14 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 	({ \
 		__auto_type __safe_root = (root); \
 		avl_node_t *__safe_node = (AVL_DOWNCAST((item), __safe_root->AVL_EMBED_NAMING_CONVENTION.offset)); \
-		AVL_INVOKE_FUNCTION(__safe_root, avl_prevnext_impl, __safe_node, true); \
+		AVL_INVOKE_FUNCTION(__safe_root, avl_prevnext_impl, &__safe_root->AVL_EMBED_NAMING_CONVENTION, __safe_node, true); \
 	})
 
 #define avl_prev(root, item) \
 	({ \
 		__auto_type __safe_root = (root); \
 		avl_node_t *__safe_node = (AVL_DOWNCAST((item), __safe_root->AVL_EMBED_NAMING_CONVENTION.offset)); \
-		AVL_INVOKE_FUNCTION(__safe_root, avl_prevnext_impl, __safe_node, false); \
+		AVL_INVOKE_FUNCTION(__safe_root, avl_prevnext_impl, &__safe_root->AVL_EMBED_NAMING_CONVENTION, __safe_node, false); \
 	})
 
 #define avl_min(root) \

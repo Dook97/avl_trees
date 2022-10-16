@@ -178,7 +178,7 @@ static void init_node(avl_node_t *node, avl_node_t *father) {
 
 /* returns closest lower/higher node according to the ordering defined by the comparator function
  * if key_node itself is in the structure it is returned */
-static avl_node_t *get_closest_node(avl_node_t *key_node, avl_root_t *root, bool lower) {
+static avl_node_t *get_closest_node(avl_root_t *root, avl_node_t *key_node, bool higher) {
 	avl_node_t *out = NULL;
 	avl_node_t *temp = root->root_node;
 	int comparison;
@@ -186,14 +186,27 @@ static avl_node_t *get_closest_node(avl_node_t *key_node, avl_root_t *root, bool
 		comparison = compare_nodes(root, key_node, temp);
 		if (comparison == 0)
 			return temp;
-		if ((lower && comparison < 0) || (!lower && comparison > 0)) {
-			temp = temp->sons[!lower];
+		if ((!higher && comparison < 0) || (higher && comparison > 0)) {
+			temp = temp->sons[higher];
 			continue;
 		}
 		out = temp;
-		temp = temp->sons[lower];
+		temp = temp->sons[!higher];
 	}
 	return out;
+}
+
+/* get previous or next node according to the ordering specified by the comparator function */
+static avl_node_t *prevnext(avl_node_t *node, bool next) {
+	if (node->sons[next] != NULL) {
+		node = node->sons[next];
+		while (node->sons[!next])
+			node = node->sons[!next];
+		return node;
+	}
+	while (node->father != NULL && node == node->father->sons[next])
+		node = node->father;
+	return node->father;
 }
 
 /* --- PUBLIC FUNCTIONS --------------------------------------- */
@@ -257,17 +270,13 @@ avl_node_t *avl_minmax_impl(avl_root_t *root, bool max) {
 	return *minmax_of_subtree(&uber_root, !max);
 }
 
-/* get previous or next node according to the ordering specified by the comparator function */
-avl_node_t *avl_prevnext_impl(avl_node_t *node, bool next) {
-	if (node->sons[next] != NULL) {
-		node = node->sons[next];
-		while (node->sons[!next])
-			node = node->sons[!next];
-		return node;
-	}
-	while (node->father != NULL && node == node->father->sons[next])
-		node = node->father;
-	return node->father;
+/* returns closest lower/higher node according to the ordering defined by the comparator function
+ * unlike get_closest_node this func doesnt return key_node when it is present in the structure */
+avl_node_t *avl_prevnext_impl(avl_root_t *root, avl_node_t *key_node, bool next) {
+	avl_node_t *out = get_closest_node(root, key_node, next);
+	if (out != NULL && compare_nodes(root, key_node, out) == 0)
+		out = prevnext(out, next);
+	return out;
 }
 
 /* get new iterator */
@@ -280,14 +289,11 @@ void avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, avl_node_t
 	avl_node_t *min = avl_minmax_impl(root, false);
 	avl_node_t *max = avl_minmax_impl(root, true);
 
-	avl_node_t *lower = (lower_bound == NULL) ? min : get_closest_node(lower_bound, root, false);
-	avl_node_t *upper = (upper_bound == NULL) ? max : get_closest_node(upper_bound, root, true);
-
-	out->cur = low_to_high ? lower : upper;
-	out->end = low_to_high ? upper : lower;
+	avl_node_t *lower = (lower_bound == NULL) ? min : get_closest_node(root, lower_bound, true);
+	avl_node_t *upper = (upper_bound == NULL) ? max : get_closest_node(root, upper_bound, false);
 
 	/* if an invalid range is specified invalidate the iterator */
-       if (lower == NULL || upper == NULL
+	if (lower == NULL || upper == NULL
 		|| (upper_bound != NULL && compare_nodes(root, lower, upper_bound) > 0)
 		|| (lower_bound != NULL && compare_nodes(root, upper, lower_bound) < 0)
 		|| (lower_bound != NULL && compare_nodes(root, lower_bound, max)   > 0)
@@ -295,6 +301,9 @@ void avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, avl_node_t
 		out->cur = NULL;
 		return;
 	}
+
+	out->cur = low_to_high ? lower : upper;
+	out->end = low_to_high ? upper : lower;
 }
 
 /* get next node from iterator */
@@ -308,7 +317,7 @@ avl_node_t *avl_advance_impl(avl_iterator_t *iterator) {
 	}
 
 	avl_node_t *out = iterator->cur;
-	iterator->cur = avl_prevnext_impl(iterator->cur, iterator->low_to_high);
+	iterator->cur = prevnext(iterator->cur, iterator->low_to_high);
 	return out;
 }
 
