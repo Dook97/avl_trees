@@ -241,3 +241,273 @@ shares the same interface as `avl_advance`
 If the underlying dictionary gets modified after an iterator was created, the
 iterator is considered invalidated and any operations performed on it have an
 undefined result.
+
+---
+
+## Implementation Reader's Guide
+
+We're done describing the interface of the library. The following section is
+written in an effort to help with understanding of the internal implementation.
+It is presumed that you are familiar with the idea behind Binary Search Trees
+(BSTs from now on) and their extension - AVL trees. If you are not, I'd advise
+reading up on that first.
+
+### AVL node & root
+
+`avl_node_t` and `avl_root_t` are the two fundamental concepts used. Node
+represents an entry in the tree and root represents the tree itself.
+
+A node stores pointers to its father and its two sons. Any of them can be `NULL`.
+It also stores a sign which equals: `depth of right subtree - depth of left
+subtree`. The sign of a node can only be -1, 0 or 1 as per the AVL tree
+invariant. Later it will be described how this information is used to aid in
+keeping the tree balanced and how the sign itself is updated.
+
+A root stores pointer to the root node as well as to the comparator function,
+which is defined by the user and is used as a black box by the library. The
+last member is the in-memory offset from the user defined struct to its
+`avl_node_t` member. This is necessary in order to support the generic nature of
+the library, but more on that later.
+
+### Find
+
+The basic find operation is carried out by the `avl_find_getaddr` function. Its
+implementation is a trivial aplication of the BST invariant, but you might be
+surprised by the double pointers. These are *pointers to father's pointer to
+node*. Dealing with pointers in this way is very convenient, because it allows
+us to avoid having to deal with the root node as a special case when setting
+the `root_node` pointer inside `avl_root_t` and for the rest of the nodes it means
+we don't have to figure out which of the two son pointers we want to modify as
+we would be forced to do, if we only had a direct pointer to the node.
+
+The function also has a nice proprety that it returns pointer to the last
+node visited during the search operation. Due to the nature of BSTs this is
+also the place where that node would be if we were to insert it.
+
+`avl_find_getaddr` is then wrapped in `avl_find_impl` to provide a simple and
+clean interface for the user.
+
+### Insert
+
+Is carried out by `avl_insert_impl`. The heavy lifting is done by the find and
+balance functions.
+
+First `avl_find_getaddr` finds the position where the node should be inserted.
+Either an equal node was found in which case it is replaced by the new one and
+no other operations are necessarry or it isn't in which case the node is
+inserted as a leaf and `balance` has to be called to preserve the AVL invariant
+(and thus keep the tree balanced).
+
+### Delete
+
+Is similar in some ways to insert, but it's a bit more complicated as we have
+to distinguish between three cases:
+
+1. The node is a leaf -> easy; simply remove it
+2. The node has one son -> also easy; contract an edge
+3. The node has both sons -> bit harder; it has to be replaced by another node
+
+In the code you can see the first two cases can be nicely handled as a single
+case. In the last case we use the minimal node from the right subtree to
+replace the node.
+
+`balance_start` is the node from which the `balance` operation will start
+propagating upwards. In the first two cases this is simply the father of the
+deleted node and in the third case it is the father of the node which has been
+used as a replacement for the deleted node.
+
+Just in case you're wondering about this line:
+
+```c
+balance_start = (compare_nodes(root, (*min)->father, key_node) != 0) ? (*min)->father : *min;
+```
+
+The ternary is there for the eventuality, that the minimal node from the right
+subtree is also the right son of the deleted node. In that case we would be
+calling `balance` on the deleted node which wouldn't exactly work well.
+
+### Balance
+
+Fair warning: This is probably the most cryptic part of the core library code. Brace yourselves :p
+
+The balance operation encompasses everything that needs to be done to preserve the AVL invariant.
+
+It is called upon the root of the subtree which has been modified by insert or
+delete, does *stuff* and then continues upwards as long as needed.
+
+The arguments are:
+
+1. `node` - the father of the deleted/inserted node
+2. `root`
+3. `from_left` - signifies whether the 'signal' about change came from the left or right subtree
+4. `after_delete` - signifies whether `balance` is being called after delete or insert
+
+The function might be difficult to read because it encompasses all possible
+eventualities which could arise after both insert and delete. But I simply
+couldn't bring myself to separate it into more functions, because these would
+be very similar and non-general which I find very ugly.
+
+Now let's take it line by line:
+
+```c
+while (node != NULL)
+```
+
+Stop propagating upwards when you've finished balancing root. This works
+because root nodes's father pointer is always `NULL`.
+
+
+```c
+bool newbool = after_delete ^ !from_left;
+```
+
+Probably the least descriptive var name imaginable, but I really couldn't come
+up with anything better. Basically through merging the separate implementations
+of the function it came to light that this value comes in handy several times.
+
+```c
+node->sign += (newbool ? +1 : -1);
+```
+
+Increase or decrease `sign` according to the 'direction' and type
+(insert/delete) of the recieved signal.
+
+```c
+if (ABS(node->sign) == after_delete)
+	return;
+```
+
+If you break down all the possible cases you will find that a signal never
+propagates further upwards if:
+
+* after delete `node`'s sign is +/-1
+* after insert `nodes`'s sign is 0
+
+```c
+if (ABS(node->sign) == 2) {
+	...
+}
+```
+
+If the AVL invariant no longer holds for the current subtree, do *something*
+about it. The inner block simply carries out the necessary rotations based on
+the analysis of all possible cases.
+
+```c
+from_left = new_left;
+node = father;
+```
+
+Move up to father and repeat the same process.
+
+### Rotate
+
+`rotate` is an implementation of the edge rotation operation. It serves to
+reorder a subtree in a certain way which, when used properly, can restore the
+AVL invariant after insert or delete.
+
+A graphical representation of the operation:
+
+```
+     |           |
+     y           x
+    / \         / \
+   x   C  <->  A   y
+  / \             / \
+ A   B           B   C
+```
+
+First we update the signs as if the edge had already been rotated. The code
+behind the implementation of that might seem cryptic, but it's not really.
+Basically all it does is it calculates the height of `A` and `B` relative to
+the height of `C` and then calculates the resulting signs from that.
+
+Next we change the pointers to rotate the edge.
+
+---
+
+With this we have concluded the description of the core mechanisms of the
+library. What follows is description of some of the functionality added on top.
+
+### Min/Max
+
+Internally implemented by `minmax_of_subtree` and externally represented by `avl_minmax_impl`.
+
+The implementation is very simple. Go all the way to the left to get the minimum and vice versa.
+
+### Prev/Next
+
+Implemented by `get_closest_node` and externally represented by `avl_prevnext_impl`.
+
+`get_closest_node` returns the searched-for node itself or the node closest to
+it in the ordering defined by comparator function. Whether it's the closest
+lower or higher node is determined by the last argument to the function.
+
+The implementation is basically a modified find which only returns the closest
+node visited along the way.
+
+The internal implementation returns the searched for node if it is found while
+the public wrapper calls the internal `prevnext` function on the result if
+that's the case.
+
+
+### Iterators
+
+`avl_get_iterator` creates a new iterator based on the input parameters. The
+implementation is pretty straightforward. We look for the closest higher node
+to the lower bound and similarly for the upper bound. Then check the validity
+of the resulting interval and potentially invalidate the iterator by setting
+the current pointer to `NULL`.
+
+`avl_advance_impl` gets the next item from the iterator and advances it. Again
+the implementation is straightforward.
+
+`avl_prevnext_impl` simply returns the current item from the iterator without
+modifying its state.
+
+---
+
+With this we have finished description of the library core implementation.
+Follows a description of the implementation of the generic interface.
+
+## Generic Interface Implementation
+
+The generic interface of this library depends heavily on macros, a few clever
+tricks and also some non-standard GNU extensions. Follows an overview of these.
+
+### Up/Down-casting
+
+The core mechanism through which we are able to provide a generic interface is
+up/down-casting. That is: we compute the in-memory offset from the beggining of
+users own struct to its `avl_node_t` member. Then, when we need to convert
+`avl_node_t` to the wrapper or the reverse we can simply add/subtract the
+offset from the given address and get what we need.
+
+The offset is calculated upon invoking the `AVL_NEW` macro and stored inside
+the `avl_root_t` embedded inside the user defined root type.
+
+The calculation of the offset is defined by the `AVL_GET_MEMBER_OFFSET` macro
+and the up/down-casting functionality is provided by `AVL_UPCAST` and
+`AVL_DOWNCAST` respectively.
+
+### `AVL_DEFINE_ROOT`
+
+This macro is needed in order to define a type which stores information about
+the type of the user's wrapper struct. This type information is then used to
+provide the user with a typed pointer instead of `void *` as a return value.
+The type also contains an `avl_root_t` member under a hardcoded name which makes
+it accessible by the other macros.
+
+The type information is stored via a typed array of length 0, which means zero
+cost at runtime.
+
+### `AVL_INVOKE_FUNCTION`
+
+This macro calls a function with return type `avl_node_t *` and upcasts its
+result to the wrapper struct.
+
+### The Rest
+
+The rest of the macros are simple generic wrappers around implementation
+functions which ensure all arguments are safely downcasted and passed to
+`AVL_INVOKE_FUNCTION`

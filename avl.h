@@ -9,7 +9,7 @@
 /* internal structure storing the information necessary for proper function of the
  * AVL tree data structure */
 typedef struct avl_node {
-	struct avl_node *sons[2];
+	struct avl_node *sons[2]; // { left_son, right_son }
 	struct avl_node *father;
 	int sign; // right subtree depth - left subtree depth
 } avl_node_t;
