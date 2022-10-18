@@ -108,7 +108,7 @@ void test_next(outer_root_t *root, outer_t nodes[]) {
 	insert_linear(root, nodes);
 	for (size_t i = 0; i < NODES_COUNT; ++i) {
 		outer_t *next = avl_next(root, &nodes[i]);
-		assert((next == NULL && i == NODES_COUNT - 1) || next->num == i + 1);
+		assert((next == NULL && i == NODES_COUNT - 1) || next->num == (long)i + 1);
 	}
 
 	assert(avl_next(root, &nodes[NODES_COUNT - 1]) == NULL);
@@ -133,7 +133,7 @@ void test_prev(outer_root_t *root, outer_t nodes[]) {
 	insert_linear(root, nodes);
 	for (size_t i = 0; i < NODES_COUNT; ++i) {
 		outer_t *prev = avl_prev(root, &nodes[i]);
-		assert((prev == NULL && i == 0) || prev->num == i - 1);
+		assert((prev == NULL && i == 0) || prev->num == (long)i - 1);
 	}
 
 	assert(avl_prev(root, &nodes[0]) == NULL);
@@ -205,7 +205,7 @@ void test_iterator(outer_root_t *root, outer_t nodes[]) {
 
 	iter = avl_get_iterator(root, &nodes[0], &nodes[NODES_COUNT - 1]);
 	for (size_t i = 0; i < NODES_COUNT; ++i)
-		assert(i == avl_advance(root, &iter)->num);
+		assert((long)i == avl_advance(root, &iter)->num);
 
 	outer_t under = { .num = -100 };
 	iter = avl_get_iterator(root, &under, &nodes[0]);

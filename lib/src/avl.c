@@ -94,9 +94,9 @@ static void rotate(avl_node_t **ynode, bool left_to_right) {
 	int aheight, bheight;
 	aheight = bheight = (left_to_right ? -(*ynode)->sign : (*ynode)->sign) - 1;
 	if (xnode->sign < 0) {
-		bheight = aheight + xnode->sign;
+		bheight += xnode->sign;
 	} else {
-		aheight = bheight - xnode->sign;
+		aheight -= xnode->sign;
 	}
 	(*ynode)->sign = left_to_right ? -bheight : aheight;
 	xnode->sign    = left_to_right ?  MAX(bheight, 0) - aheight + 1
