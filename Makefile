@@ -1,12 +1,25 @@
-.PHONY: all clean test
+.PHONY: all clean
 
-all: tests
+.PRECIOUS: obj/%.o
+
+all: out/test out/database_explorer
 
 clean:
-	rm tests
+	rm -r out obj
 
-test: tests
-	./tests
+out/%: obj/%.o obj/avl.o
+	[ -d out ] || mkdir out
+	gcc -o $@ obj/avl.o $<
 
-tests: lib/src/avl.c lib/src/test.c lib/include/avl.h
-	gcc -I lib/include/ -Werror -Wall -Wextra -o tests lib/src/avl.c lib/src/test.c
+out/database_explorer: obj/database_explorer.o obj/comparators.o obj/avl.o
+	[ -d out ] || mkdir out
+	gcc -o out/database_explorer obj/comparators.o obj/database_explorer.o obj/avl.o
+
+obj/%.o: lib/src/%.c lib/include/avl.h
+	[ -d obj ] || mkdir obj
+	gcc -I./lib/include/ -Werror -Wall -Wextra -c -o $@ $<
+
+obj/database_explorer.o: showcase/database_explorer.c showcase/comparators.c showcase/explorer.h lib/include/avl.h
+	[ -d obj ] || mkdir obj
+	gcc -I./lib/include/ -c -o obj/database_explorer.o showcase/database_explorer.c
+	gcc -I./lib/include/ -c -o obj/comparators.o showcase/comparators.c
