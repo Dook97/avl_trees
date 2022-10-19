@@ -1,4 +1,8 @@
-#include "explorer.h"
+/* file containing boilerplate comparator function definitions as not to clutter
+ * the more interesting source files
+ */
+
+#include "dbfilter.h"
 #include <strings.h>
 
 int namecmp(const void *i1, const void *i2) {

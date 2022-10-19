@@ -1,4 +1,4 @@
-#include "explorer.h"
+#include "dbfilter.h"
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -8,6 +8,7 @@
 
 AVL_DEFINE_ROOT(db_t, dbentry_t);
 
+/* returns the number of occurences of char c in str */
 int charcount(const char *str, char c) {
 	int out = 0;
 	for (; *str != '\0'; ++str)
@@ -16,6 +17,9 @@ int charcount(const char *str, char c) {
 	return out;
 }
 
+/* reads and process csv file from stdin
+ * returns -1 when parsing fails and 0 when ok
+ * stores the processed database in out and the number of its entries in count */
 int readdb(dbentry_t **out, size_t *count) {
 	dbentry_t *entries = NULL;
 	char *line = NULL;
@@ -44,6 +48,7 @@ int readdb(dbentry_t **out, size_t *count) {
 	return 0;
 }
 
+/* frees memory allocated for the database */
 void freedb(dbentry_t *db, size_t size) {
 	for (size_t i = 0; i < size; ++i) {
 		free(db[i].firstname);
@@ -52,6 +57,8 @@ void freedb(dbentry_t *db, size_t size) {
 	free(db);
 }
 
+/* processes command line arguments
+ * db, query and out are output parameters */
 void processargs(int argc, char **argv, db_t *db, dbentry_t *query, args_t *out) {
 	out->reverse = false;
 	out->specify_upper_bound = false;
@@ -117,30 +124,37 @@ void processargs(int argc, char **argv, db_t *db, dbentry_t *query, args_t *out)
 }
 
 int main(int argc, char **argv) {
+	/* process command line args */
 	db_t db;
 	dbentry_t query = (dbentry_t){ .entrynumber = 0 };
 	args_t args;
 	processargs(argc, argv, &db, &query, &args);
 
+	/* read database into entries */
 	dbentry_t *entries;
 	size_t nmemb;
 	if (readdb(&entries, &nmemb) == -1) {
-		fprintf(stderr, "shit done goofed\n");
+		fprintf(stderr, "error when parsing database\n");
 		exit(1);
 	}
+	if (nmemb == 0)
+		exit(0);
 
+	/* insert the processed database into an ordered dictionary */
 	for (size_t i = 0; i < nmemb; ++i)
 		avl_insert(&db, &entries[i]);
 
-	dbentry_t *lower_bound = (args.half_open && args.specify_upper_bound) ? NULL : &query;
-	dbentry_t *upper_bound = (args.half_open && args.specify_upper_bound) ? &query : NULL;
-	if (upper_bound != NULL)
-		upper_bound->entrynumber = ULONG_MAX;
+	/* calculate the lower and upper bounds of the user specified interval */
+	dbentry_t temp = query;
+	temp.entrynumber = ULONG_MAX;
+	dbentry_t *lower_bound = (args.half_open && args.specify_upper_bound)  ? NULL : &query;
+	dbentry_t *upper_bound = (args.half_open && !args.specify_upper_bound) ? NULL : &temp;
 
+	/* get the matching entries */
 	avl_iterator_t iter = avl_get_iterator(&db, lower_bound, upper_bound, !args.reverse);
-	char opt;
 	for (dbentry_t *cur; (cur = avl_advance(&db, &iter)) != NULL;)
 		printf("%s,%s,%d,%d,%d,%lu\n", cur->firstname, cur->lastname, cur->day, cur->month, cur->year, cur->income);
 
+	/* free memory allocated for the database */
 	freedb(entries, nmemb);
 }
