@@ -283,6 +283,11 @@ avl_node_t *avl_prevnext_impl(avl_root_t *root, avl_node_t *key_node, bool next)
 void avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, avl_node_t *upper_bound,
 		bool low_to_high, avl_iterator_t *out) {
 
+	if (root->root_node == NULL) {
+		out->cur = NULL;
+		return;
+	}
+
 	out->root = root;
 	out->low_to_high = low_to_high;
 
