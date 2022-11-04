@@ -129,9 +129,15 @@ dict_item_t *found = avl_find(&dict, &item);
 
 ### Delete
 
-To delete `dict_item_t item` from `dict_t dict` use `avl_delete`
+To delete an item from `dict_t dict` use `avl_delete`
+
+Similarly to `insert` you need to create a helper `dict_item_t` instance and
+initialize the fields used by your comparator function.
+
+Again assuming we want to delete an item whose `.key == 13`:
 
 ```c
+dict_item_t item = { .key = 13 };
 dict_item_t *deleted = avl_delete(&dict, &item);
 ```
 
