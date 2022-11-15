@@ -101,6 +101,7 @@ static void rotate(avl_node_t **ynode, bool left_to_right) {
 	(*ynode)->sign = left_to_right ? -bheight : aheight;
 	xnode->sign    = left_to_right ?  MAX(bheight, 0) - aheight + 1
 				       : -MAX(aheight, 0) + bheight - 1;
+
 	/* make b son of y */
 	if (*bnode != NULL)
 		(*bnode)->father = *ynode;
@@ -164,7 +165,7 @@ static void replace_by_new(avl_node_t **replaced, avl_node_t *replacement) {
 
 	replacement->sons[left]  = (*replaced)->sons[left];
 	replacement->sons[right] = (*replaced)->sons[right];
-	replacement->father = (*replaced)->father;
+	replacement->father	 = (*replaced)->father;
 
 	*replaced = replacement;
 }
@@ -233,6 +234,7 @@ avl_node_t *avl_insert_impl(avl_node_t *new_node, avl_root_t *root) {
 	init_node(new_node, father);
 	*((root->root_node == NULL) ? &root->root_node
 				    : choose_son(new_node, father, root)) = new_node;
+
 	if (father != NULL)
 		balance(father, root, compare_nodes(root, new_node, father) < 0, false);
 
@@ -280,16 +282,15 @@ avl_node_t *avl_prevnext_impl(avl_root_t *root, avl_node_t *key_node, bool next)
 }
 
 /* get new iterator */
-void avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, avl_node_t *upper_bound,
-		bool low_to_high, avl_iterator_t *out) {
-
+avl_iterator_t avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, avl_node_t *upper_bound, bool low_to_high) {
+	avl_iterator_t out;
 	if (root->root_node == NULL) {
-		out->cur = NULL;
-		return;
+		out.cur = NULL;
+		return out;
 	}
 
-	out->root = root;
-	out->low_to_high = low_to_high;
+	out.root = root;
+	out.low_to_high = low_to_high;
 
 	avl_node_t *min = avl_minmax_impl(root, false);
 	avl_node_t *max = avl_minmax_impl(root, true);
@@ -303,12 +304,13 @@ void avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, avl_node_t
 		|| (lower_bound != NULL && compare_nodes(root, upper, lower_bound) < 0)
 		|| (lower_bound != NULL && compare_nodes(root, lower_bound, max)   > 0)
 		|| (upper_bound != NULL && compare_nodes(root, upper_bound, min)   < 0)) {
-		out->cur = NULL;
-		return;
+		out.cur = NULL;
+		return out;
 	}
 
-	out->cur = low_to_high ? lower : upper;
-	out->end = low_to_high ? upper : lower;
+	out.cur = low_to_high ? lower : upper;
+	out.end = low_to_high ? upper : lower;
+	return out;
 }
 
 /* get next node from iterator */

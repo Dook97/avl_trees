@@ -37,11 +37,11 @@ int readdb(dbentry_t **out, size_t *count) {
 		char *delim2 = strchr(delim1 + 1, ',');
 		entries[nmemb - 1].firstname = strndup(line, delim1 - line);
 		entries[nmemb - 1].lastname = strndup(delim1 + 1, delim2 - delim1 - 1);
-                sscanf(delim2 + 1, "%d,%d,%d,%lu\n", &entries[nmemb - 1].day,
-                       &entries[nmemb - 1].month, &entries[nmemb - 1].year,
-                       &entries[nmemb - 1].income);
+		sscanf(delim2 + 1, "%d,%d,%d,%lu\n", &entries[nmemb - 1].day,
+		       &entries[nmemb - 1].month, &entries[nmemb - 1].year,
+		       &entries[nmemb - 1].income);
 		entries[nmemb - 1].entrynumber = nmemb - 1;
-        }
+	}
 	free(line);
 	*out = entries;
 	*count = nmemb;
@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
 	args_t args;
 	processargs(argc, argv, &db, &query, &args);
 
-	/* read database into entries */
+	/* read database into memory */
 	dbentry_t *entries;
 	size_t nmemb;
 	if (readdb(&entries, &nmemb) == -1) {
@@ -150,7 +150,7 @@ int main(int argc, char **argv) {
 	dbentry_t *lower_bound = (args.half_open && args.specify_upper_bound)  ? NULL : &query;
 	dbentry_t *upper_bound = (args.half_open && !args.specify_upper_bound) ? NULL : &temp;
 
-	/* get the matching entries */
+	/* print the matching entries */
 	avl_iterator_t iter = avl_get_iterator(&db, lower_bound, upper_bound, !args.reverse);
 	for (dbentry_t *cur; (cur = avl_advance(&db, &iter)) != NULL;)
 		printf("%s,%s,%d,%d,%d,%lu\n", cur->firstname, cur->lastname, cur->day, cur->month, cur->year, cur->income);

@@ -58,8 +58,7 @@ avl_node_t *avl_minmax_impl(avl_root_t *root, bool max);
 avl_node_t *avl_prevnext_impl(avl_root_t *root, avl_node_t *key_node, bool next);
 
 /* get new iterator */
-void avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, avl_node_t *upper_bound,
-		bool low_to_high, avl_iterator_t *out);
+avl_iterator_t avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, avl_node_t *upper_bound, bool low_to_high);
 
 /* get next item from iterator */
 avl_node_t *avl_advance_impl(avl_iterator_t *iterator);
@@ -94,11 +93,12 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 	})
 
 /* calls function with return type avl_node_t* and yields its return value upcasted to the wrapper type */
-#define AVL_INVOKE_FUNCTION(root, function_name, ...) \
+#define AVL_INVOKE_FUNCTION(root, func_ptr, ...) \
 	({ \
-		avl_node_t *__avl_func_output__ = (*(function_name))(__VA_ARGS__); \
+		avl_node_t *__avl_func_output__ = (*(func_ptr))(__VA_ARGS__); \
+		__auto_type __safe_root = (root); \
 		(__avl_func_output__ == NULL) ? NULL : \
-			(__typeof__(*(root)->node_typeinfo__) *)(AVL_UPCAST(__avl_func_output__, (root)->AVL_EMBED_NAMING_CONVENTION.offset)); \
+			(__typeof__(*__safe_root->node_typeinfo__) *)(AVL_UPCAST(__avl_func_output__, __safe_root->AVL_EMBED_NAMING_CONVENTION.offset)); \
 	})
 
 /* --- USER FACING MACROS ------------------------------------- */
@@ -181,9 +181,7 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 		__auto_type __safe_root = (root); \
 		avl_node_t *__safe_lower = (AVL_DOWNCAST((lower_bound), __safe_root->AVL_EMBED_NAMING_CONVENTION.offset)); \
 		avl_node_t *__safe_upper = (AVL_DOWNCAST((upper_bound), __safe_root->AVL_EMBED_NAMING_CONVENTION.offset)); \
-		avl_iterator_t out; \
-		avl_get_iterator_impl(&__safe_root->AVL_EMBED_NAMING_CONVENTION, __safe_lower, __safe_upper, __low_to_high, &out); \
-		out; \
+		avl_get_iterator_impl(&__safe_root->AVL_EMBED_NAMING_CONVENTION, __safe_lower, __safe_upper, __low_to_high); \
 	})
 
 #define avl_advance(root, iterator) \
