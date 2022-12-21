@@ -16,11 +16,9 @@ typedef struct {
 AVL_DEFINE_ROOT(outer_root_t, outer_t);
 
 int comparator(const void *node1, const void *node2) {
-	if (((outer_t *)node1)->num == ((outer_t *)node2)->num)
-		return 0;
-	if (((outer_t *)node1)->num <  ((outer_t *)node2)->num)
-		return -1;
-	return 1;
+	long num1 = ((outer_t *)node1)->num, num2 = ((outer_t *)node2)->num;
+	return (num1 == num2) ? 0
+			      : (num1 < num2) ? -1 : +1;
 }
 
 void fill_random(outer_t nodes[]) {
@@ -161,7 +159,7 @@ void test_iterator(outer_root_t *root, outer_t nodes[]) {
 
 	avl_iterator_t iter = avl_get_iterator(root, &nodes[0], &nodes[1]);
 
-	assert(avl_peek(root, &iter) == NULL || comparator(avl_peek(root, &iter), &nodes[0])   == 0);
+	assert(avl_peek(root, &iter) == NULL || comparator(avl_peek(root, &iter), &nodes[0]) == 0);
 	assert(avl_peek(root, &iter) == NULL || comparator(AVL_UPCAST(iter.end, offset), &nodes[1]) == 0);
 
 	outer_t *prev = avl_advance(root, &iter);
@@ -184,7 +182,7 @@ void test_iterator(outer_root_t *root, outer_t nodes[]) {
 	outer_t low = { .num = 1000 };
 	outer_t hig = { .num = 9999 };
 	iter = avl_get_iterator(root, &low, &hig);
-	for (outer_t *cur; (cur = avl_advance(root, &iter));) {
+	for (outer_t *cur; (cur = avl_advance(root, &iter)) != NULL;) {
 		long end = ((outer_t *)AVL_UPCAST(iter.end, offset))->num;
 		assert(cur->num <= end);
 		assert(comparator(cur, &low) >= 0);

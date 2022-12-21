@@ -86,9 +86,9 @@ static avl_node_t **minmax_of_subtree(avl_node_t *node, bool max) {
  * x, y represent nodes while A, B, C represent (possibly empty) subtrees
  * arguments are named according to the left part of the diagram */
 static void rotate(avl_node_t **ynode, bool left_to_right) {
-	avl_node_t **ptr_to_x = left_to_right ? &(*ynode)->sons[left] : &(*ynode)->sons[right];
+	avl_node_t **ptr_to_x = &(*ynode)->sons[!left_to_right];
 	avl_node_t *xnode = *ptr_to_x;
-	avl_node_t **bnode = left_to_right ? &xnode->sons[right] : &xnode->sons[left];
+	avl_node_t **bnode = &xnode->sons[left_to_right];
 
 	/* update signs */
 	int aheight, bheight;
@@ -135,7 +135,7 @@ static void balance(avl_node_t *node, avl_root_t *root, bool from_left, bool aft
 		bool new_left = (father != NULL && node == father->sons[left]);
 
 		if (ABS(node->sign) == 2) {
-			avl_node_t **son = newbool ? &node->sons[right] : &node->sons[left];
+			avl_node_t **son = &node->sons[newbool];
 			int prevsign = (*son)->sign;
 			if (ABS(node->sign + (*son)->sign) == 1)
 				rotate(son, newbool);
@@ -283,14 +283,14 @@ avl_node_t *avl_prevnext_impl(avl_root_t *root, avl_node_t *key_node, bool next)
 
 /* get new iterator */
 avl_iterator_t avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, avl_node_t *upper_bound, bool low_to_high) {
-	avl_iterator_t out;
-	if (root->root_node == NULL) {
-		out.cur = NULL;
-		return out;
-	}
+	avl_iterator_t out = {
+		.cur = NULL,
+		.root = root,
+		.low_to_high = low_to_high
+	};
 
-	out.root = root;
-	out.low_to_high = low_to_high;
+	if (root->root_node == NULL)
+		return out;
 
 	avl_node_t *min = avl_minmax_impl(root, false);
 	avl_node_t *max = avl_minmax_impl(root, true);
@@ -304,7 +304,6 @@ avl_iterator_t avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, 
 		|| (lower_bound != NULL && compare_nodes(root, upper, lower_bound) < 0)
 		|| (lower_bound != NULL && compare_nodes(root, lower_bound, max)   > 0)
 		|| (upper_bound != NULL && compare_nodes(root, upper_bound, min)   < 0)) {
-		out.cur = NULL;
 		return out;
 	}
 

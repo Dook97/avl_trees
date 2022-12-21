@@ -71,6 +71,7 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 /* get number of args in __VA_ARGS__ */
 #define AVL_GET_ARGS_COUNT(...) (sizeof((int[]){__VA_ARGS__}) / sizeof(int))
 
+/* get the in-memory offset of avl_node_t member from the beggining of it's wrapping struct */
 #define AVL_GET_MEMBER_OFFSET(wrapper_type, avl_member_name) \
 	((size_t)&((wrapper_type *)0)->avl_member_name)
 
@@ -83,7 +84,6 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 		avl_node_t *__safe_ptr = (ptr_to_avl_member); \
 		(__safe_ptr == NULL) ? NULL : ((void *)__safe_ptr - (offset)); \
 	})
-
 
 /* downcast from wrapper struct to its avl_node_t member */
 #define AVL_DOWNCAST(ptr_to_wrapper, offset) \
@@ -116,7 +116,7 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 		.AVL_EMBED_NAMING_CONVENTION = (avl_root_t){ \
 			.root_node  = NULL, \
 			.comparator = (_comparator), \
-			.offset = AVL_GET_MEMBER_OFFSET(__typeof__(*((root_type_name *)0xdeadbeef)->node_typeinfo__), avl_member_name) \
+			.offset = AVL_GET_MEMBER_OFFSET(__typeof__(*((root_type_name *)0)->node_typeinfo__), avl_member_name) \
 		} \
 	}
 
@@ -140,7 +140,7 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 		__auto_type __safe_root = (root); \
 		avl_node_t *__safe_node = (AVL_DOWNCAST((item), __safe_root->AVL_EMBED_NAMING_CONVENTION.offset)); \
 		AVL_INVOKE_FUNCTION(__safe_root, avl_delete_impl, __safe_node, &__safe_root->AVL_EMBED_NAMING_CONVENTION); \
-	 })
+	})
 
 #define avl_contains(root, item) \
 	({ \
