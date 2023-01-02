@@ -21,6 +21,15 @@ completely up to the user.
 This means more work when using the library but also greater flexibility and
 possibly efficiency, which is a very C-spirited tradeoff to make I think 🙂
 
+## Note on internal structures
+
+It should be obvious, but the user is **NOT** expected to directly access the data
+inside the internal structures used by the library. A hellish landscape ripe
+with segfaults surely awaits any programmer foolish enough to take on such
+endeavour.
+
+Just treat them as black boxes and save yourself the headache :)
+
 ## Supporting Structures
 
 Before you can start using the library there are some supporting structures
@@ -34,15 +43,16 @@ AVL tree it has to contain one `avl_node_t` member for each.
 
 ```c
 typedef struct {
-	TKey key;
-	TValue value;
-	avl_node_t avl_node;
+    TKey key;
+    TValue value;
+    avl_node_t dict_data;
 } dict_item_t;
 ```
 
 ### Define a comparator function on `dict_item_t`
 
-Its signature has to be `int (*)(const void *, const void *)` and it has to return:
+The function is expected to be qsort-like. That is: it's signature has to be
+`int (*)(const void *, const void *)` and it has to return:
 
 ```
 <0 if item1 < item2
@@ -50,17 +60,15 @@ Its signature has to be `int (*)(const void *, const void *)` and it has to retu
 >0 if item1 > item2
 ```
 
-For example if you already have such a comparator function `TKeyComparator`
-defined on `TKey` you can do the following:
+An example comparator function assuming `TKey` is synonymous to `int`:
 
 ```c
 int dict_compare(const void *item1, const void *item2) {
-	return TKeyComparator(((dict_item_t *)item1)->key, ((dict_item_t *)item2)->key);
+    int key1 = ((dict_item_t *)item1)->key, key2 = ((dict_item_t *)item2)->key;
+    return (key1 == key2) ? 0
+                          : (key1 < key2) ? -1 : 1;
 }
 ```
-
-Or you could do something more interesting, like defining a lexicographical
-ordering on the members of your `dict_item_t`
 
 ### Define a dictionary type
 
@@ -72,29 +80,26 @@ AVL_DEFINE_ROOT(dict_t, dict_item_t);
 
 The arguments to this macro are:
 
-1. the name of the type which will represent your dictionary
-2. the name of the type of a dictionary item
+1. type which will represent your dictionary
+2. type of a dictionary item
 
-The `dict_t` now represents the type of your dictionary. Of course you can use
-any type name you want - it doesn't have to be `dict_t`
+`dict_t` now is the type of your dictionary.
 
 ## Interface
-
-With the helper structures ready we can start using the library.
 
 ### Creating new dictionary instances
 
 To create a new dictionary instance use:
 
 ```c
-dict_t dict = AVL_NEW(dict_t, avl_node, dict_compare);
+dict_t dict = AVL_NEW(dict_t, dict_data, dict_compare);
 ```
 
 The arguments to the `AVL_NEW` macro are:
 
-1. your dictionary type
-2. name of your `avl_node_t` member
-3. pointer to your comparator function
+1. dictionary type
+2. name of the `avl_node_t` member of a dictionary item
+3. pointer to a comparator function
 
 ### Insert
 
@@ -121,8 +126,8 @@ So if we use `dict_item_t` as an example and presume that we're looking for an
 item whose `.key == 13` we would call `avl_find` thusly:
 
 ```c
-dict_item_t item = { .key = 13 };
-dict_item_t *found = avl_find(&dict, &item);
+dict_item_t dummy = { .key = 13 };
+dict_item_t *found = avl_find(&dict, &dummy);
 ```
 
 `avl_find` returns a typed pointer to the found item or `NULL` if it wasn't found.
@@ -137,8 +142,8 @@ initialize the fields used by your comparator function.
 Again assuming we want to delete an item whose `.key == 13`:
 
 ```c
-dict_item_t item = { .key = 13 };
-dict_item_t *deleted = avl_delete(&dict, &item);
+dict_item_t dummy = { .key = 13 };
+dict_item_t *deleted = avl_delete(&dict, &dummy);
 ```
 
 `avl_delete` returns a typed pointer to the deleted item or `NULL` if the
@@ -146,7 +151,8 @@ item wasn't found in the dictionary.
 
 ### Contains
 
-To check wheter `dict_item_t item` is present in `dict_t dict` use `avl_contains`
+To check wheter `dict_item_t item`, or an item equal to it, as defined by your
+comparator function, is present in `dict_t dict` use `avl_contains`
 
 ```c
 bool item_present = avl_contains(&dict, &item);
@@ -189,12 +195,10 @@ eg: *"Which of our cutomers have recently turned 40?"*
 
 ## Iterators
 
-An iterator facility is provided by the library.
-
 ### Creating an iterator
 
-There are several ways of obtaining an iterator via `avl_get_iterator`. The
-arguments to this macro are as follows:
+An iterator is obtained via `avl_get_iterator`. The arguments to this macro are
+as follows:
 
 1. pointer to the dictionary structure
 2. lower bound of the iterator interval
@@ -206,6 +210,8 @@ maximum dictionary items will be used for the lower and upper bounds
 respectively.
 
 Use `false` as the optional fourth argument to specify decreasing order.
+
+Example presuming `dict` contains items whose keys range from 1 to 100:
 
 ```c
 dict_item_t lower = { .key = 13 };
@@ -247,6 +253,8 @@ shares the same interface as `avl_advance`
 If the underlying dictionary gets modified after an iterator was created, the
 iterator is considered invalidated and any operations performed on it have an
 undefined result.
+
+In practice you can expect anything from a correct result to a segfault.
 
 ---
 
@@ -380,7 +388,7 @@ Increase or decrease `sign` according to the 'direction' and type
 
 ```c
 if (ABS(node->sign) == after_delete)
-	return;
+    return;
 ```
 
 If you break down all the possible cases you will find that a signal never
@@ -391,7 +399,7 @@ propagates further upwards if:
 
 ```c
 if (ABS(node->sign) == 2) {
-	...
+    ...
 }
 ```
 

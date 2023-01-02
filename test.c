@@ -155,7 +155,7 @@ void test_iterator(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	insert_random(root, nodes);
 
-	size_t offset = root->AVL_EMBED_NAMING_CONVENTION.offset;
+	size_t offset = root->AVL_ROOT_EMBED__.offset;
 
 	avl_iterator_t iter = avl_get_iterator(root, &nodes[0], &nodes[1]);
 
