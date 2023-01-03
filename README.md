@@ -21,25 +21,27 @@ completely up to the user.
 This means more work when using the library but also greater flexibility and
 possibly efficiency, which is a very C-spirited tradeoff to make I think 🙂
 
-## Note on internal structures
+## Note on internals
 
-It should be obvious, but the user is **NOT** expected to directly access the data
+It should be obvious, but the user is **NOT** expected to directly access data
 inside the internal structures used by the library. A hellish landscape ripe
 with segfaults surely awaits any programmer foolish enough to take on such
 endeavour.
 
-Just treat them as black boxes and save yourself the headache :)
+A less stringent warning applies to the use of any of the `*_impl` functions.
+These only exist as infrastructure for the generic macros and there is little
+reason to use them, besides I suppose a very minor performance gain, which
+however would be payed for in increased code complexity and the loss of genericity.
 
 ## Supporting Structures
-
-Before you can start using the library there are some supporting structures
-which you need to create.
 
 ### Define a dictionary item type
 
 The type can contain any members you wish and it has to contain *(at least)*
 one `avl_node_t` member. If you wish to embed the structure in more than one
 AVL tree it has to contain one `avl_node_t` member for each.
+
+An example typedef which will be used throughout the rest of the documentation:
 
 ```c
 typedef struct {
@@ -51,8 +53,8 @@ typedef struct {
 
 ### Define a comparator function on `dict_item_t`
 
-The function is expected to be qsort-like. That is: it's signature has to be
-`int (*)(const void *, const void *)` and it has to return:
+It's signature has to be `int (*)(const void *, const void *)` and it has to
+return:
 
 ```
 <0 if item1 < item2
@@ -60,7 +62,7 @@ The function is expected to be qsort-like. That is: it's signature has to be
 >0 if item1 > item2
 ```
 
-An example comparator function assuming `TKey` is synonymous to `int`:
+An example comparator function assuming `TKey` is synonymous with `int`:
 
 ```c
 int dict_compare(const void *item1, const void *item2) {
@@ -83,7 +85,7 @@ The arguments to this macro are:
 1. type which will represent your dictionary
 2. type of a dictionary item
 
-`dict_t` now is the type of your dictionary.
+`dict_t` is now the type of your dictionary.
 
 ## Interface
 
@@ -117,13 +119,11 @@ replaced item or `NULL` if no item was replaced.
 
 ### Find
 
-To find `dict_item_t item` in `dict_t dict` use `avl_find`
+To find an item in `dict_t dict` use `avl_find`
 
-You need to create a `dict_item_t` instance with the members used by the
-comparator function set to the values you're looking for.
-
-So if we use `dict_item_t` as an example and presume that we're looking for an
-item whose `.key == 13` we would call `avl_find` thusly:
+You need to create a dictionary item instance which is equal to the item you're
+looking for as per your comparator function. That means setting it's relevant
+members.
 
 ```c
 dict_item_t dummy = { .key = 13 };
@@ -134,12 +134,7 @@ dict_item_t *found = avl_find(&dict, &dummy);
 
 ### Delete
 
-To delete an item from `dict_t dict` use `avl_delete`
-
-Similarly to `insert` you need to create a helper `dict_item_t` instance and
-initialize the fields used by your comparator function.
-
-Again assuming we want to delete an item whose `.key == 13`:
+To delete an item equal to `dict_item_t dummy` from `dict_t dict` use `avl_delete`
 
 ```c
 dict_item_t dummy = { .key = 13 };
@@ -151,14 +146,14 @@ item wasn't found in the dictionary.
 
 ### Contains
 
-To check wheter `dict_item_t item`, or an item equal to it, as defined by your
-comparator function, is present in `dict_t dict` use `avl_contains`
+To check wheter an item equal to `dict_item_t item` is present in `dict_t dict`
+use `avl_contains`
 
 ```c
 bool item_present = avl_contains(&dict, &item);
 ```
 
-`avl_contains` returns `1` if item was found otherwise `0`
+`avl_contains` returns `true` if item was found otherwise `false` (as per `stdbool.h`)
 
 ### Min
 
