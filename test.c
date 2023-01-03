@@ -155,7 +155,7 @@ void test_iterator(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	insert_random(root, nodes);
 
-	size_t offset = root->AVL_ROOT_EMBED__.offset;
+	size_t offset = root->AVL_ROOT_EMBED.offset;
 
 	avl_iterator_t iter = avl_get_iterator(root, &nodes[0], &nodes[1]);
 
@@ -215,17 +215,17 @@ void test_iterator(outer_root_t *root, outer_t nodes[]) {
 
 typedef void (*test_func)(outer_root_t *, outer_t[]);
 
-void run_test(test_func func, outer_root_t *root, outer_t nodes[], char *msg, int repeat) {
+void run_test(test_func test, outer_root_t *root, outer_t nodes[], char *msg, int repeat) {
 	for (int i = 1; i <= repeat; ++i) {
 		printf("\r");
 		fflush(stdout);
 		printf("%-25s%2d/%d", msg, i, repeat);
-		(*func)(root, nodes);
+		test(root, nodes);
 	}
 	puts("  \033[1;32mOK\033[0m");
 }
 
-int main() {
+int main(void) {
 	srandom(time(NULL));
 	outer_root_t root = AVL_NEW(outer_root_t, avl_node, comparator);
 	outer_t nodes[NODES_COUNT];
@@ -239,5 +239,6 @@ int main() {
 	run_test(test_next, &root, nodes, "next", 10);
 	run_test(test_prev, &root, nodes, "prev", 10);
 	run_test(test_iterator, &root, nodes, "iterator", 10);
+
 	puts("All tests passed successfully! 👍");
 }

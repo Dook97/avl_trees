@@ -2,7 +2,7 @@
 
 all: test
 
-test: avl.c avl.h test.c
-	cc -o $@ avl.c test.c
+test: lib/avl.c lib/avl.h test.c
+	cc -o $@ -I./lib lib/avl.c test.c
 clean:
 	rm test
