@@ -19,8 +19,7 @@
  * returns >0 if node1 > node2
  */
 static int compare_nodes(avl_root_t *root, avl_node_t *node1, avl_node_t *node2) {
-	return (*root->comparator)(AVL_UPCAST(node1, root->offset),
-				   AVL_UPCAST(node2, root->offset));
+	return root->comparator(AVL_UPCAST(node1, root->offset), AVL_UPCAST(node2, root->offset));
 }
 
 /* choose next node on the path to node with given key according to BST invariant */
@@ -126,20 +125,23 @@ static avl_node_t **get_fathers_ptr(avl_node_t *node, avl_root_t *root) {
  * and carries out any necessary rotations */
 static void balance(avl_node_t *node, avl_root_t *root, bool from_left, bool after_delete) {
 	while (node != NULL) {
-		bool newbool = after_delete ^ !from_left;
-		node->sign += (newbool ? +1 : -1);
-		if (ABS(node->sign) == after_delete)
+                /* The operation is (almost) symmetric between the
+                 * after-delete/insert varianst. This variable ensures switching
+                 * between the two symmetric behaviours */
+                bool control = after_delete ? from_left : !from_left;
+		node->sign += (control ? +1 : -1);
+		if (ABS(node->sign) == !!after_delete)
 			return;
 
 		avl_node_t *father = node->father;
 		bool new_left = (father != NULL && node == father->sons[left]);
 
 		if (ABS(node->sign) == 2) {
-			avl_node_t **son = &node->sons[newbool];
+			avl_node_t **son = &node->sons[control];
 			int prevsign = (*son)->sign;
 			if (ABS(node->sign + (*son)->sign) == 1)
-				rotate(son, newbool);
-			rotate(get_fathers_ptr(node, root), !newbool);
+				rotate(son, control);
+			rotate(get_fathers_ptr(node, root), !control);
 			if (!after_delete || prevsign == 0)
 				return;
 		}

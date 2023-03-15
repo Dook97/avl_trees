@@ -232,13 +232,13 @@ int main(void) {
 
 	run_test(insert_random, &root, nodes, "random_insert", 10);
 	run_test(insert_linear, &root, nodes, "linear_insert", 10);
-	run_test(test_remove, &root, nodes, "remove", 10);
-	run_test(test_find, &root, nodes, "find", 10);
-	run_test(test_min, &root, nodes, "min", 10);
-	run_test(test_max, &root, nodes, "max", 10);
-	run_test(test_next, &root, nodes, "next", 10);
-	run_test(test_prev, &root, nodes, "prev", 10);
-	run_test(test_iterator, &root, nodes, "iterator", 10);
+	run_test(test_remove,   &root, nodes, "remove",        10);
+	run_test(test_find,     &root, nodes, "find",          10);
+	run_test(test_min,      &root, nodes, "min",           10);
+	run_test(test_max,      &root, nodes, "max",           10);
+	run_test(test_next,     &root, nodes, "next",          10);
+	run_test(test_prev,     &root, nodes, "prev",          10);
+	run_test(test_iterator, &root, nodes, "iterator",      10);
 
 	puts("All tests passed successfully! 👍");
 }
