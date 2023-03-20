@@ -198,13 +198,13 @@ as follows:
 1. pointer to the dictionary structure
 2. lower bound of the iterator interval
 3. upper bound of the iterator interval
-4. **[OPTIONAL]** a boolean value specifying increasing or decreasing order
+4. a macro specifying increasing or decreasing order
 
 If a `NULL` is specified in place of one of the bounds the minimum and the
 maximum dictionary items will be used for the lower and upper bounds
 respectively.
 
-Use `false` as the optional fourth argument to specify decreasing order.
+Use `AVL_ASCENDING` or `AVL_DESCENDING` to specify iteration order.
 
 Example presuming `dict` contains items whose keys range from 1 to 100:
 
@@ -213,19 +213,19 @@ dict_item_t lower = { .key = 13 };
 dict_item_t upper = { .key = 42 };
 
 /* get iterator over the interval 13..42 */
-avl_iterator_t iterator = avl_get_iterator(&dict, &lower, &upper);
+avl_iterator_t iterator = avl_get_iterator(&dict, &lower, &upper, AVL_ASCENDING);
 
 /* get iterator over the interval 42..13 */
-avl_iterator_t reversed = avl_get_iterator(&dict, &lower, &upper, false);
+avl_iterator_t reversed = avl_get_iterator(&dict, &lower, &upper, AVL_DESCENDING);
 
 /* get iterator over the interval 1..42 */
-avl_iterator_t half_open = avl_get_iterator(&dict, NULL, &upper);
+avl_iterator_t half_open = avl_get_iterator(&dict, NULL, &upper, AVL_ASCENDING);
 
 /* get iterator over the interval 1..100 */
-avl_iterator_t open = avl_get_iterator(&dict, NULL, NULL);
+avl_iterator_t open = avl_get_iterator(&dict, NULL, NULL, AVL_ASCENDING);
 
 /* empty iterator - legal but useless */
-avl_iterator_t empty = avl_get_iterator(&dict, &upper, &lower);
+avl_iterator_t empty = avl_get_iterator(&dict, &upper, &lower, AVL_ASCENDING);
 ```
 
 ### Advancing an iterator
@@ -248,5 +248,3 @@ shares the same interface as `avl_advance`
 If the underlying dictionary gets modified after an iterator was created, the
 iterator is considered invalidated and any operations performed on it have an
 undefined result.
-
-In practice you can expect anything from a correct result to a segfault.

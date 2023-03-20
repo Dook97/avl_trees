@@ -14,9 +14,6 @@ typedef struct avl_node {
 	int sign; // right subtree depth - left subtree depth
 } avl_node_t;
 
-/* a readability measure - left & right serve as indicies into the sons member of avl_node_t */
-typedef enum avl_son_index { left, right } avl_son_index_t;
-
 /* a comparator function intended for structs wrapping avl_node
  *
  * returns <0 if item1 < item2
@@ -37,6 +34,15 @@ typedef struct {
 	avl_root_t *root;
 	bool low_to_high;
 } avl_iterator_t;
+
+/* --- CONSTANTS ---------------------------------------------- */
+
+/* a readability measure - left & right serve as indicies into the sons member of avl_node_t */
+enum avl_son_index { left, right };
+
+/* last argument to avl_get_iterator which determines the iteration order */
+#define AVL_ASCENDING  true
+#define AVL_DESCENDING false
 
 /* --- INTERNAL FUNCTIONS ------------------------------------- */
 
@@ -174,13 +180,12 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 		AVL_INVOKE_FUNCTION(safe_root__, avl_minmax_impl, &safe_root__->AVL_ROOT_EMBED, true); \
 	})
 
-#define avl_get_iterator(root, lower_bound, upper_bound, ...) \
+#define avl_get_iterator(root, lower_bound, upper_bound, low_to_high) \
 	({ \
-		bool low_to_high__ = (AVL_GET_ARGS_COUNT(__VA_ARGS__ ) == 1) ? __VA_ARGS__ : true; \
 		__auto_type safe_root__ = (root); \
 		avl_node_t *safe_lower__ = AVL_DOWNCAST((lower_bound), safe_root__->AVL_ROOT_EMBED.offset); \
 		avl_node_t *safe_upper__ = AVL_DOWNCAST((upper_bound), safe_root__->AVL_ROOT_EMBED.offset); \
-		avl_get_iterator_impl(&safe_root__->AVL_ROOT_EMBED, safe_lower__, safe_upper__, low_to_high__); \
+		avl_get_iterator_impl(&safe_root__->AVL_ROOT_EMBED, safe_lower__, safe_upper__, (low_to_high)); \
 	})
 
 #define avl_advance(root, iterator) \
