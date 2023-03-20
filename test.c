@@ -118,7 +118,7 @@ void test_next(outer_root_t *root, outer_t nodes[]) {
 		nodes_copy[i] = nodes[i];
 	qsort(nodes_copy, NODES_COUNT, sizeof(outer_t), comparator);
 	outer_t *cur = avl_min(root);
-	for (size_t i = 0; i < NODES_COUNT; ++i) {
+	for (size_t i = 0; i < NODES_COUNT - 1; ++i) {
 		if (comparator(&nodes_copy[i], &nodes_copy[i+1]) == 0)
 			continue;
 		assert(comparator(&nodes_copy[i], cur) == 0);
