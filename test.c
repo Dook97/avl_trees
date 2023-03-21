@@ -4,9 +4,10 @@
 #include <time.h>
 #include <assert.h>
 #include <limits.h>
+#include <string.h>
 
 #define arr_len(arr) (sizeof(arr) / sizeof(arr[0]))
-#define NODES_COUNT 100000
+#define NODES_COUNT 300000
 
 typedef struct {
 	long num;
@@ -113,17 +114,18 @@ void test_next(outer_root_t *root, outer_t nodes[]) {
 
 	remove_all(root, nodes);
 	insert_random(root, nodes);
-	outer_t nodes_copy[NODES_COUNT];
-	for (size_t i = 0; i < NODES_COUNT; ++i)
-		nodes_copy[i] = nodes[i];
+	outer_t *nodes_copy = malloc(NODES_COUNT * sizeof(outer_t));
+	memcpy(nodes_copy, nodes, NODES_COUNT * sizeof(outer_t));
 	qsort(nodes_copy, NODES_COUNT, sizeof(outer_t), comparator);
 	outer_t *cur = avl_min(root);
-	for (size_t i = 0; i < NODES_COUNT - 1; ++i) {
-		if (comparator(&nodes_copy[i], &nodes_copy[i+1]) == 0)
+	for (size_t i = 0; i < NODES_COUNT; ++i) {
+		if (i < NODES_COUNT - 1 && comparator(&nodes_copy[i], &nodes_copy[i+1]) == 0)
 			continue;
 		assert(comparator(&nodes_copy[i], cur) == 0);
 		cur = avl_next(root, cur);
 	}
+
+	free(nodes_copy);
 }
 
 void test_prev(outer_root_t *root, outer_t nodes[]) {
@@ -138,9 +140,8 @@ void test_prev(outer_root_t *root, outer_t nodes[]) {
 
 	remove_all(root, nodes);
 	insert_random(root, nodes);
-	outer_t nodes_copy[NODES_COUNT];
-	for (size_t i = 0; i < NODES_COUNT; ++i)
-		nodes_copy[i] = nodes[i];
+	outer_t *nodes_copy = malloc(NODES_COUNT * sizeof(outer_t));
+	memcpy(nodes_copy, nodes, NODES_COUNT * sizeof(outer_t));
 	qsort(nodes_copy, NODES_COUNT, sizeof(outer_t), comparator);
 	outer_t *cur = avl_max(root);
 	for (size_t i = NODES_COUNT - 1; i > 0; --i) {
@@ -149,6 +150,8 @@ void test_prev(outer_root_t *root, outer_t nodes[]) {
 		assert(comparator(&nodes_copy[i], cur) == 0);
 		cur = avl_prev(root, cur);
 	}
+
+	free(nodes_copy);
 }
 
 void test_iterator(outer_root_t *root, outer_t nodes[]) {
@@ -228,7 +231,7 @@ void run_test(test_func test, outer_root_t *root, outer_t nodes[], char *msg, in
 int main(void) {
 	srandom(time(NULL));
 	outer_root_t root = AVL_NEW(outer_root_t, avl_node, comparator);
-	outer_t nodes[NODES_COUNT];
+	outer_t *nodes = malloc(NODES_COUNT * sizeof(outer_t));
 
 	run_test(insert_random, &root, nodes, "random_insert", 10);
 	run_test(insert_linear, &root, nodes, "linear_insert", 10);
@@ -240,5 +243,6 @@ int main(void) {
 	run_test(test_prev,     &root, nodes, "prev",          10);
 	run_test(test_iterator, &root, nodes, "iterator",      10);
 
+	free(nodes);
 	puts("All tests passed successfully! 👍");
 }
