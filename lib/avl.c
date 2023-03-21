@@ -130,7 +130,7 @@ static void balance(avl_node_t *node, avl_root_t *root, bool from_left, bool aft
                  * between the two symmetric behaviours */
                 bool control = after_delete ? from_left : !from_left;
 		node->sign += (control ? +1 : -1);
-		if (ABS(node->sign) == !!after_delete)
+		if (ABS(node->sign) == after_delete)
 			return;
 
 		avl_node_t *father = node->father;
@@ -184,17 +184,16 @@ static void init_node(avl_node_t *node, avl_node_t *father) {
 static avl_node_t *get_closest_node(avl_root_t *root, avl_node_t *key_node, bool higher) {
 	avl_node_t *out = NULL;
 	avl_node_t *temp = root->root_node;
-	int comparison;
 	while (temp != NULL) {
-		comparison = compare_nodes(root, key_node, temp);
+		int comparison = compare_nodes(root, key_node, temp);
 		if (comparison == 0)
 			return temp;
 		if ((!higher && comparison < 0) || (higher && comparison > 0)) {
 			temp = temp->sons[higher];
-			continue;
+		} else {
+			out = temp;
+			temp = temp->sons[!higher];
 		}
-		out = temp;
-		temp = temp->sons[!higher];
 	}
 	return out;
 }
