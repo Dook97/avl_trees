@@ -157,7 +157,7 @@ void test_iterator(outer_root_t *root, outer_t nodes[]) {
 
 	size_t offset = root->AVL_ROOT_EMBED.offset;
 
-	avl_iterator_t iter = avl_get_iterator(root, &nodes[0], &nodes[1], AVL_ASCENDING);
+	avl_iterator_t iter = avl_get_iterator(root, &nodes[0], &nodes[1]);
 
 	assert(avl_peek(root, &iter) == NULL || comparator(avl_peek(root, &iter), &nodes[0]) == 0);
 	assert(avl_peek(root, &iter) == NULL || comparator(AVL_UPCAST(iter.end, offset), &nodes[1]) == 0);
@@ -181,7 +181,7 @@ void test_iterator(outer_root_t *root, outer_t nodes[]) {
 
 	outer_t low = { .num = 1000 };
 	outer_t hig = { .num = 9999 };
-	iter = avl_get_iterator(root, &low, &hig, AVL_ASCENDING);
+	iter = avl_get_iterator(root, &low, &hig);
 	for (outer_t *cur; (cur = avl_advance(root, &iter)) != NULL;) {
 		long end = ((outer_t *)AVL_UPCAST(iter.end, offset))->num;
 		assert(cur->num <= end);
@@ -201,15 +201,15 @@ void test_iterator(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	insert_linear(root, nodes);
 
-	iter = avl_get_iterator(root, &nodes[0], &nodes[NODES_COUNT - 1], AVL_ASCENDING);
+	iter = avl_get_iterator(root, &nodes[0], &nodes[NODES_COUNT - 1]);
 	for (size_t i = 0; i < NODES_COUNT; ++i)
 		assert((long)i == avl_advance(root, &iter)->num);
 
 	outer_t under = { .num = -100 };
-	iter = avl_get_iterator(root, &under, &nodes[0], AVL_ASCENDING);
+	iter = avl_get_iterator(root, &under, &nodes[0]);
 	assert(avl_peek(root, &iter) == avl_min(root));
 
-	iter = avl_get_iterator(root, &nodes[NODES_COUNT - 1], &nodes[0], AVL_ASCENDING);
+	iter = avl_get_iterator(root, &nodes[NODES_COUNT - 1], &nodes[0]);
 	assert(avl_advance(root, &iter) == NULL);
 }
 
