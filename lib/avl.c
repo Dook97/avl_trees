@@ -66,12 +66,11 @@ static void replace_node(avl_node_t **replaced, avl_node_t **replacement) {
 	*replacement = temp;
 }
 
-/* returns pointer to fathers pointer to minimum of the right subtree or maximum of the left subtree */
-static avl_node_t **minmax_of_subtree(avl_node_t *node, bool max) {
-	avl_node_t **min = &node->sons[max];
-	while ((*min)->sons[!max] != NULL)
-		min = &(*min)->sons[!max];
-	return min;
+/* returns pointer to fathers pointer to min/max of a subtree */
+static avl_node_t **minmax_of_tree(avl_node_t **node, bool max) {
+	while ((*node)->sons[max] != NULL)
+		node = &(*node)->sons[max];
+	return node;
 }
 
 /* edge rotation
@@ -257,7 +256,7 @@ avl_node_t *avl_delete_impl(avl_node_t *key_node, avl_root_t *root) {
 		if (*son != NULL)
 			(*son)->father = node->father;
 	} else {
-		avl_node_t **min = minmax_of_subtree(node, right);
+		avl_node_t **min = minmax_of_tree(&node->sons[right], false);
 		balance_start = (compare_nodes(root, (*min)->father, key_node) != 0) ? (*min)->father : *min;
 		from_left = (balance_start->sons[left] == *min);
 		replace_node(son, min);
@@ -269,8 +268,7 @@ avl_node_t *avl_delete_impl(avl_node_t *key_node, avl_root_t *root) {
 
 /* get minimal or maximal node according to the ordering specified by the comparator function */
 avl_node_t *avl_minmax_impl(avl_root_t *root, bool max) {
-	avl_node_t uber_root = { .sons = {root->root_node, root->root_node} };
-	return *minmax_of_subtree(&uber_root, !max);
+	return *minmax_of_tree(&root->root_node, max);
 }
 
 /* returns closest lower/higher node according to the ordering defined by the comparator function
