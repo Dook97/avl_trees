@@ -37,12 +37,17 @@ typedef struct {
 
 /* --- CONSTANTS ---------------------------------------------- */
 
-/* a readability measure - left & right serve as indicies into the sons member of avl_node_t */
-enum avl_son_index { left, right };
-
 /* optional last argument to avl_get_iterator which determines the iteration order */
 #define AVL_ASCENDING	true
 #define AVL_DESCENDING	false
+
+/* argument to avl_minmax_impl */
+#define AVL_MAX		true
+#define AVL_MIN		false
+
+/* argument to avl_prevnext_impl */
+#define AVL_NEXT	true
+#define AVL_PREV	false
 
 /* --- INTERNAL FUNCTIONS ------------------------------------- */
 
@@ -158,26 +163,26 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 	({ \
 		__auto_type safe_root__ = (root); \
 		avl_node_t *safe_node__ = AVL_DOWNCAST((item), safe_root__->AVL_ROOT_EMBED.offset); \
-		AVL_INVOKE_FUNCTION(safe_root__, avl_prevnext_impl, &safe_root__->AVL_ROOT_EMBED, safe_node__, true); \
+		AVL_INVOKE_FUNCTION(safe_root__, avl_prevnext_impl, &safe_root__->AVL_ROOT_EMBED, safe_node__, AVL_NEXT); \
 	})
 
 #define avl_prev(root, item) \
 	({ \
 		__auto_type safe_root__ = (root); \
 		avl_node_t *safe_node__ = AVL_DOWNCAST((item), safe_root__->AVL_ROOT_EMBED.offset); \
-		AVL_INVOKE_FUNCTION(safe_root__, avl_prevnext_impl, &safe_root__->AVL_ROOT_EMBED, safe_node__, false); \
+		AVL_INVOKE_FUNCTION(safe_root__, avl_prevnext_impl, &safe_root__->AVL_ROOT_EMBED, safe_node__, AVL_PREV); \
 	})
 
 #define avl_min(root) \
 	({ \
 		__auto_type safe_root__ = (root); \
-		AVL_INVOKE_FUNCTION(safe_root__, avl_minmax_impl, &safe_root__->AVL_ROOT_EMBED, false); \
+		AVL_INVOKE_FUNCTION(safe_root__, avl_minmax_impl, &safe_root__->AVL_ROOT_EMBED, AVL_MIN); \
 	})
 
 #define avl_max(root) \
 	({ \
 		__auto_type safe_root__ = (root); \
-		AVL_INVOKE_FUNCTION(safe_root__, avl_minmax_impl, &safe_root__->AVL_ROOT_EMBED, true); \
+		AVL_INVOKE_FUNCTION(safe_root__, avl_minmax_impl, &safe_root__->AVL_ROOT_EMBED, AVL_MAX); \
 	})
 
 #define avl_get_iterator(root, lower_bound, upper_bound, ...) \

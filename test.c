@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define arr_len(arr) (sizeof(arr) / sizeof(arr[0]))
-#define NODES_COUNT 300000
+#define NODES_COUNT 500000
 
 typedef struct {
 	long num;
@@ -220,9 +220,8 @@ typedef void (*test_func)(outer_root_t *, outer_t[]);
 
 void run_test(test_func test, outer_root_t *root, outer_t nodes[], char *msg, int repeat) {
 	for (int i = 1; i <= repeat; ++i) {
-		printf("\r");
+		printf("\r%-25s%2d/%d", msg, i, repeat);
 		fflush(stdout);
-		printf("%-25s%2d/%d", msg, i, repeat);
 		test(root, nodes);
 	}
 	puts("  \033[1;32mOK\033[0m");

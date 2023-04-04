@@ -10,6 +10,11 @@
 		 __temp_x > __temp_y ? __temp_x : __temp_y; \
 	})
 
+/* --- CONSTANTS ---------------------------------------------- */
+
+/* a readability measure - left & right serve as indicies into the sons member of avl_node_t */
+enum avl_son_index { left, right };
+
 /* --- INTERNAL FUNCTIONS ------------------------------------- */
 
 /* a shortcut to compare two nodes via the user provided comparator function
@@ -256,7 +261,7 @@ avl_node_t *avl_delete_impl(avl_node_t *key_node, avl_root_t *root) {
 		if (*son != NULL)
 			(*son)->father = node->father;
 	} else {
-		avl_node_t **min = minmax_of_tree(&node->sons[right], false);
+		avl_node_t **min = minmax_of_tree(&node->sons[right], AVL_MIN);
 		balance_start = (compare_nodes(root, (*min)->father, key_node) != 0) ? (*min)->father : *min;
 		from_left = (balance_start->sons[left] == *min);
 		replace_node(son, min);
@@ -291,8 +296,8 @@ avl_iterator_t avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, 
 	if (root->root_node == NULL)
 		return out;
 
-	avl_node_t *min = avl_minmax_impl(root, false);
-	avl_node_t *max = avl_minmax_impl(root, true);
+	avl_node_t *min = avl_minmax_impl(root, AVL_MIN);
+	avl_node_t *max = avl_minmax_impl(root, AVL_MAX);
 
 	avl_node_t *lower = (lower_bound == NULL) ? min : get_closest_node(root, lower_bound, true);
 	avl_node_t *upper = (upper_bound == NULL) ? max : get_closest_node(root, upper_bound, false);
