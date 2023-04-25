@@ -87,6 +87,8 @@ The arguments to this macro are:
 
 `dict_t` is now the type of your dictionary.
 
+Internally this is just a typedef, so it's ok to use in header files.
+
 ## Interface
 
 ### Creating new dictionary instances

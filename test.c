@@ -16,6 +16,15 @@ typedef struct {
 
 AVL_DEFINE_ROOT(outer_root_t, outer_t);
 
+void *safe_malloc(size_t size) {
+	void *memory = malloc(size);
+	if (memory == NULL) {
+		fprintf(stderr, "couldn't allocate memory - exiting...\n");
+		exit(1);
+	}
+	return memory;
+}
+
 int comparator(const void *node1, const void *node2) {
 	long num1 = ((outer_t *)node1)->num, num2 = ((outer_t *)node2)->num;
 	return (num1 == num2) ? 0
@@ -114,7 +123,7 @@ void test_next(outer_root_t *root, outer_t nodes[]) {
 
 	remove_all(root, nodes);
 	insert_random(root, nodes);
-	outer_t *nodes_copy = malloc(NODES_COUNT * sizeof(outer_t));
+	outer_t *nodes_copy = safe_malloc(NODES_COUNT * sizeof(outer_t));
 	memcpy(nodes_copy, nodes, NODES_COUNT * sizeof(outer_t));
 	qsort(nodes_copy, NODES_COUNT, sizeof(outer_t), comparator);
 	outer_t *cur = avl_min(root);
@@ -140,7 +149,7 @@ void test_prev(outer_root_t *root, outer_t nodes[]) {
 
 	remove_all(root, nodes);
 	insert_random(root, nodes);
-	outer_t *nodes_copy = malloc(NODES_COUNT * sizeof(outer_t));
+	outer_t *nodes_copy = safe_malloc(NODES_COUNT * sizeof(outer_t));
 	memcpy(nodes_copy, nodes, NODES_COUNT * sizeof(outer_t));
 	qsort(nodes_copy, NODES_COUNT, sizeof(outer_t), comparator);
 	outer_t *cur = avl_max(root);
@@ -230,7 +239,7 @@ void run_test(test_func test, outer_root_t *root, outer_t nodes[], char *msg, in
 int main(void) {
 	srandom(time(NULL));
 	outer_root_t root = AVL_NEW(outer_root_t, avl_node, comparator);
-	outer_t *nodes = malloc(NODES_COUNT * sizeof(outer_t));
+	outer_t *nodes = safe_malloc(NODES_COUNT * sizeof(outer_t));
 
 	run_test(insert_random, &root, nodes, "random_insert", 10);
 	run_test(insert_linear, &root, nodes, "linear_insert", 10);
@@ -243,5 +252,5 @@ int main(void) {
 	run_test(test_iterator, &root, nodes, "iterator",      10);
 
 	free(nodes);
-	puts("All tests passed successfully! 👍");
+	puts("All tests passed successfully! \xf0\x9f\x91\x8d"); // a thumbs-up emoji
 }
