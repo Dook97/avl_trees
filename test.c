@@ -6,8 +6,21 @@
 #include <limits.h>
 #include <string.h>
 
+/* --- MACROS --------------------------------------- */
+
 #define arr_len(arr) (sizeof(arr) / sizeof(arr[0]))
+#define xstr(a) str(a)
+#define str(a) #a
+#define TEST_FAIL_IF_NOT(cond) \
+	{ if (!(cond)) return "ERROR on line " xstr(__LINE__) " in " __FILE__; }
+
 #define NODES_COUNT 500000
+#define TEST_REPEAT 10
+
+#define GREEN(str) "\033[1;32m"str"\033[0m"
+#define RED(str) "\033[1;91m"str"\033[0m"
+
+/* --- TYPEDEFS ------------------------------------- */
 
 typedef struct {
 	long num;
@@ -16,6 +29,22 @@ typedef struct {
 
 AVL_DEFINE_ROOT(outer_root_t, outer_t);
 
+typedef char *(*test_func)(outer_root_t *, outer_t[]);
+
+typedef struct {
+	test_func test;
+	char *msg;
+	int repeat;
+} testctx_t;
+
+/* --- HELPER FUNCTIONS ------------------------------ */
+
+int comparator(const void *node1, const void *node2) {
+	long num1 = ((outer_t *)node1)->num, num2 = ((outer_t *)node2)->num;
+	return (num1 == num2) ? 0
+			      : (num1 < num2) ? -1 : +1;
+}
+
 void *safe_malloc(size_t size) {
 	void *memory = malloc(size);
 	if (memory == NULL) {
@@ -23,12 +52,6 @@ void *safe_malloc(size_t size) {
 		exit(1);
 	}
 	return memory;
-}
-
-int comparator(const void *node1, const void *node2) {
-	long num1 = ((outer_t *)node1)->num, num2 = ((outer_t *)node2)->num;
-	return (num1 == num2) ? 0
-			      : (num1 < num2) ? -1 : +1;
 }
 
 void fill_random(outer_t nodes[]) {
@@ -41,52 +64,59 @@ void fill_linear(outer_t nodes[]) {
 		nodes[i].num = i;
 }
 
-void remove_all(outer_root_t *root, outer_t nodes[]) {
+/* --- TEST FUNCTIONS ------------------------------- */
+
+char *remove_all(outer_root_t *root, outer_t nodes[]) {
 	for (size_t i = 0; i < NODES_COUNT; ++i) {
 		outer_t *deleted = avl_delete(root, &nodes[i]);
-		assert(deleted == NULL || comparator(deleted, &nodes[i]) == 0);
-		assert(!avl_contains(root, &nodes[i]));
+		TEST_FAIL_IF_NOT(deleted == NULL || comparator(deleted, &nodes[i]) == 0);
+		TEST_FAIL_IF_NOT(!avl_contains(root, &nodes[i]));
 	}
+	return NULL;
 }
 
-void insert_random(outer_root_t *root, outer_t nodes[]) {
+char *insert_random(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	fill_random(nodes);
 	for (size_t i = 0; i < NODES_COUNT; ++i) {
 		outer_t *replaced = avl_insert(root, &nodes[i]);
-		assert(replaced == NULL || comparator(replaced, &nodes[i]) == 0);
-		assert(avl_contains(root, &nodes[i]));
+		TEST_FAIL_IF_NOT(replaced == NULL || comparator(replaced, &nodes[i]) == 0);
+		TEST_FAIL_IF_NOT(avl_contains(root, &nodes[i]));
 	}
+	return NULL;
 }
 
-void test_remove(outer_root_t *root, outer_t nodes[]) {
+char *test_remove(outer_root_t *root, outer_t nodes[]) {
 	insert_random(root, nodes);
 	remove_all(root, nodes);
+	return NULL;
 }
 
-void insert_linear(outer_root_t *root, outer_t nodes[]) {
+char *insert_linear(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	fill_linear(nodes);
 	for (size_t i = 0; i < NODES_COUNT; ++i) {
 		outer_t *replaced = avl_insert(root, &nodes[i]);
-		assert(replaced == NULL);
-		assert(avl_contains(root, &nodes[i]));
+		TEST_FAIL_IF_NOT(replaced == NULL);
+		TEST_FAIL_IF_NOT(avl_contains(root, &nodes[i]));
 	}
+	return NULL;
 }
 
-void test_find(outer_root_t *root, outer_t nodes[]) {
+char *test_find(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	insert_random(root, nodes);
 	for (size_t i = 0; i < NODES_COUNT; ++i) {
 		outer_t *found = avl_find(root, &nodes[i]);
-		assert(found->num == nodes[i].num);
+		TEST_FAIL_IF_NOT(found->num == nodes[i].num);
 	}
+	return NULL;
 }
 
-void test_min(outer_root_t *root, outer_t nodes[]) {
+char *test_min(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	insert_linear(root, nodes);
-	assert(comparator(avl_min(root), &nodes[0]) == 0);
+	TEST_FAIL_IF_NOT(comparator(avl_min(root), &nodes[0]) == 0);
 
 	remove_all(root, nodes);
 	insert_random(root, nodes);
@@ -94,13 +124,14 @@ void test_min(outer_root_t *root, outer_t nodes[]) {
 	for (size_t i = 0; i < NODES_COUNT; ++i)
 		if (comparator(&min, &nodes[i]) > 0)
 			min = nodes[i];
-	assert(comparator(avl_min(root), &min) == 0);
+	TEST_FAIL_IF_NOT(comparator(avl_min(root), &min) == 0);
+	return NULL;
 }
 
-void test_max(outer_root_t *root, outer_t nodes[]) {
+char *test_max(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	insert_linear(root, nodes);
-	assert(comparator(avl_max(root), &nodes[NODES_COUNT - 1]) == 0);
+	TEST_FAIL_IF_NOT(comparator(avl_max(root), &nodes[NODES_COUNT - 1]) == 0);
 
 	remove_all(root, nodes);
 	insert_random(root, nodes);
@@ -108,18 +139,19 @@ void test_max(outer_root_t *root, outer_t nodes[]) {
 	for (size_t i = 0; i < NODES_COUNT; ++i)
 		if (comparator(&max, &nodes[i]) < 0)
 			max = nodes[i];
-	assert(comparator(avl_max(root), &max) == 0);
+	TEST_FAIL_IF_NOT(comparator(avl_max(root), &max) == 0);
+	return NULL;
 }
 
-void test_next(outer_root_t *root, outer_t nodes[]) {
+char *test_next(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	insert_linear(root, nodes);
 	for (size_t i = 0; i < NODES_COUNT; ++i) {
 		outer_t *next = avl_next(root, &nodes[i]);
-		assert((next == NULL && i == NODES_COUNT - 1) || next->num == (long)i + 1);
+		TEST_FAIL_IF_NOT((next == NULL && i == NODES_COUNT - 1) || next->num == (long)i + 1);
 	}
 
-	assert(avl_next(root, &nodes[NODES_COUNT - 1]) == NULL);
+	TEST_FAIL_IF_NOT(avl_next(root, &nodes[NODES_COUNT - 1]) == NULL);
 
 	remove_all(root, nodes);
 	insert_random(root, nodes);
@@ -130,22 +162,23 @@ void test_next(outer_root_t *root, outer_t nodes[]) {
 	for (size_t i = 0; i < NODES_COUNT; ++i) {
 		if (i < NODES_COUNT - 1 && comparator(&nodes_copy[i], &nodes_copy[i+1]) == 0)
 			continue;
-		assert(comparator(&nodes_copy[i], cur) == 0);
+		TEST_FAIL_IF_NOT(comparator(&nodes_copy[i], cur) == 0);
 		cur = avl_next(root, cur);
 	}
 
 	free(nodes_copy);
+	return NULL;
 }
 
-void test_prev(outer_root_t *root, outer_t nodes[]) {
+char *test_prev(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	insert_linear(root, nodes);
 	for (size_t i = 0; i < NODES_COUNT; ++i) {
 		outer_t *prev = avl_prev(root, &nodes[i]);
-		assert((prev == NULL && i == 0) || prev->num == (long)i - 1);
+		TEST_FAIL_IF_NOT((prev == NULL && i == 0) || prev->num == (long)i - 1);
 	}
 
-	assert(avl_prev(root, &nodes[0]) == NULL);
+	TEST_FAIL_IF_NOT(avl_prev(root, &nodes[0]) == NULL);
 
 	remove_all(root, nodes);
 	insert_random(root, nodes);
@@ -156,14 +189,15 @@ void test_prev(outer_root_t *root, outer_t nodes[]) {
 	for (size_t i = NODES_COUNT - 1; i > 0; --i) {
 		if (i > 0 && comparator(&nodes_copy[i], &nodes_copy[i-1]) == 0)
 			continue;
-		assert(comparator(&nodes_copy[i], cur) == 0);
+		TEST_FAIL_IF_NOT(comparator(&nodes_copy[i], cur) == 0);
 		cur = avl_prev(root, cur);
 	}
 
 	free(nodes_copy);
+	return NULL;
 }
 
-void test_iterator(outer_root_t *root, outer_t nodes[]) {
+char *test_iterator(outer_root_t *root, outer_t nodes[]) {
 	remove_all(root, nodes);
 	insert_random(root, nodes);
 
@@ -171,14 +205,14 @@ void test_iterator(outer_root_t *root, outer_t nodes[]) {
 
 	avl_iterator_t iter = avl_get_iterator(root, &nodes[0], &nodes[1]);
 
-	assert(avl_peek(root, &iter) == NULL || comparator(avl_peek(root, &iter), &nodes[0]) == 0);
-	assert(avl_peek(root, &iter) == NULL || comparator(AVL_UPCAST(iter.end, offset), &nodes[1]) == 0);
+	TEST_FAIL_IF_NOT(avl_peek(root, &iter) == NULL || comparator(avl_peek(root, &iter), &nodes[0]) == 0);
+	TEST_FAIL_IF_NOT(avl_peek(root, &iter) == NULL || comparator(AVL_UPCAST(iter.end, offset), &nodes[1]) == 0);
 
 	outer_t *prev = avl_advance(root, &iter);
 	for (outer_t *cur; (cur = avl_advance(root, &iter));) {
 		long end = ((outer_t *)AVL_UPCAST(iter.end, offset))->num;
-		assert(cur->num <= end);
-		assert(comparator(prev, cur) < 0);
+		TEST_FAIL_IF_NOT(cur->num <= end);
+		TEST_FAIL_IF_NOT(comparator(prev, cur) < 0);
 		prev = cur;
 	}
 
@@ -186,8 +220,8 @@ void test_iterator(outer_root_t *root, outer_t nodes[]) {
 	prev = avl_advance(root, &iter);
 	for (outer_t *cur; (cur = avl_advance(root, &iter));) {
 		long end = ((outer_t *)AVL_UPCAST(iter.end, offset))->num;
-		assert(cur->num >= end);
-		assert(comparator(prev, cur) > 0);
+		TEST_FAIL_IF_NOT(cur->num >= end);
+		TEST_FAIL_IF_NOT(comparator(prev, cur) > 0);
 		prev = cur;
 	}
 
@@ -196,17 +230,17 @@ void test_iterator(outer_root_t *root, outer_t nodes[]) {
 	iter = avl_get_iterator(root, &low, &hig);
 	for (outer_t *cur; (cur = avl_advance(root, &iter)) != NULL;) {
 		long end = ((outer_t *)AVL_UPCAST(iter.end, offset))->num;
-		assert(cur->num <= end);
-		assert(comparator(cur, &low) >= 0);
-		assert(comparator(cur, &hig) <= 0);
+		TEST_FAIL_IF_NOT(cur->num <= end);
+		TEST_FAIL_IF_NOT(comparator(cur, &low) >= 0);
+		TEST_FAIL_IF_NOT(comparator(cur, &hig) <= 0);
 	}
 
 	iter = avl_get_iterator(root, &low, &hig, AVL_DESCENDING);
 	prev = avl_advance(root, &iter);
 	for (outer_t *cur; (cur = avl_advance(root, &iter));) {
 		long end = ((outer_t *)AVL_UPCAST(iter.end, offset))->num;
-		assert(cur->num >= end);
-		assert(comparator(prev, cur) > 0);
+		TEST_FAIL_IF_NOT(cur->num >= end);
+		TEST_FAIL_IF_NOT(comparator(prev, cur) > 0);
 		prev = cur;
 	}
 
@@ -215,25 +249,42 @@ void test_iterator(outer_root_t *root, outer_t nodes[]) {
 
 	iter = avl_get_iterator(root, &nodes[0], &nodes[NODES_COUNT - 1]);
 	for (size_t i = 0; i < NODES_COUNT; ++i)
-		assert((long)i == avl_advance(root, &iter)->num);
+		TEST_FAIL_IF_NOT((long)i == avl_advance(root, &iter)->num);
 
 	outer_t under = { .num = -100 };
 	iter = avl_get_iterator(root, &under, &nodes[0]);
-	assert(avl_peek(root, &iter) == avl_min(root));
+	TEST_FAIL_IF_NOT(avl_peek(root, &iter) == avl_min(root));
 
 	iter = avl_get_iterator(root, &nodes[NODES_COUNT - 1], &nodes[0]);
-	assert(avl_advance(root, &iter) == NULL);
+	TEST_FAIL_IF_NOT(avl_advance(root, &iter) == NULL);
+
+	return NULL;
 }
 
-typedef void (*test_func)(outer_root_t *, outer_t[]);
+/* --- TEST INFRASTRUCUTRE -------------------------- */
 
-void run_test(test_func test, outer_root_t *root, outer_t nodes[], char *msg, int repeat) {
-	for (int i = 1; i <= repeat; ++i) {
-		printf("\r%-25s%2d/%d", msg, i, repeat);
+int run_test(testctx_t *ctx, outer_root_t *root, outer_t nodes[]) {
+	int err_counter = 0, lasterr = 0;
+	char *strerr = NULL;
+	for (int i = 1; i <= ctx->repeat; ++i) {
+		printf("%c%-25s%2d/%d", lasterr ? '\n' : '\r', ctx->msg, i, ctx->repeat);
 		fflush(stdout);
-		test(root, nodes);
+		lasterr = 0;
+		if (strerr = ctx->test(root, nodes)) {
+			printf(RED("\t%s"), strerr);
+			++err_counter;
+			lasterr = 1;
+		}
 	}
-	puts("  \033[1;32mOK\033[0m");
+
+	if (err_counter) {
+		printf("%c%-32s%s\n", lasterr ? '\n' : '\r', ctx->msg, RED("FAILED"));
+		fflush(stdout);
+	} else {
+		puts(GREEN("\tOK"));
+	}
+
+	return err_counter;
 }
 
 int main(void) {
@@ -241,16 +292,28 @@ int main(void) {
 	outer_root_t root = AVL_NEW(outer_root_t, avl_node, comparator);
 	outer_t *nodes = safe_malloc(NODES_COUNT * sizeof(outer_t));
 
-	run_test(insert_random, &root, nodes, "random_insert", 10);
-	run_test(insert_linear, &root, nodes, "linear_insert", 10);
-	run_test(test_remove,   &root, nodes, "remove",        10);
-	run_test(test_find,     &root, nodes, "find",          10);
-	run_test(test_min,      &root, nodes, "min",           10);
-	run_test(test_max,      &root, nodes, "max",           10);
-	run_test(test_next,     &root, nodes, "next",          10);
-	run_test(test_prev,     &root, nodes, "prev",          10);
-	run_test(test_iterator, &root, nodes, "iterator",      10);
+	testctx_t ctxs[] = {
+		{ .test = insert_random, .msg = "random_insert", .repeat = TEST_REPEAT },
+		{ .test = insert_linear, .msg = "linear_insert", .repeat = TEST_REPEAT },
+		{ .test = test_remove,   .msg = "remove",        .repeat = TEST_REPEAT },
+		{ .test = test_find,     .msg = "find",          .repeat = TEST_REPEAT },
+		{ .test = test_min,      .msg = "min",           .repeat = TEST_REPEAT },
+		{ .test = test_max,      .msg = "max",           .repeat = TEST_REPEAT },
+		{ .test = test_next,     .msg = "next",          .repeat = TEST_REPEAT },
+		{ .test = test_prev,     .msg = "prev",          .repeat = TEST_REPEAT },
+		{ .test = test_iterator, .msg = "iterator",      .repeat = TEST_REPEAT },
+	};
+
+	int err_counter = 0;
+	for (int i = 0; i < arr_len(ctxs); ++i)
+		err_counter += run_test(&ctxs[i], &root, nodes);
 
 	free(nodes);
-	puts("All tests passed successfully! \xf0\x9f\x91\x8d"); // a thumbs-up emoji
+	if (!err_counter) {
+		printf("\nAll tests passed successfully! \xf0\x9f\x91\x8d\n"); // thumbs-up emoji
+		return 0;
+	} else {
+		printf("\n%d tests failed \xf0\x9f\x98\xa5\n", err_counter); // sad emoji
+		return 1;
+	}
 }

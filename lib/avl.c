@@ -176,13 +176,6 @@ static void replace_by_new(avl_node_t **replaced, avl_node_t *replacement) {
 	*replaced = replacement;
 }
 
-/* initialize newly inserted node */
-static void init_node(avl_node_t *node, avl_node_t *father) {
-	node->father = father;
-	node->sons[left] = node->sons[right] = NULL;
-	node->sign = 0;
-}
-
 /* returns closest lower/higher node according to the ordering defined by the comparator function
  * if key_node itself is in the structure it is returned */
 static avl_node_t *get_closest_node(avl_root_t *root, avl_node_t *key_node, bool higher) {
@@ -236,7 +229,8 @@ avl_node_t *avl_insert_impl(avl_node_t *new_node, avl_root_t *root) {
 		return father;
 	}
 
-	init_node(new_node, father);
+	*new_node = (avl_node_t){0};
+	new_node->father = father;
 	*((root->root_node == NULL) ? &root->root_node
 				    : choose_son(new_node, father, root)) = new_node;
 
@@ -287,14 +281,8 @@ avl_node_t *avl_prevnext_impl(avl_root_t *root, avl_node_t *key_node, bool next)
 
 /* get new iterator */
 avl_iterator_t avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, avl_node_t *upper_bound, bool low_to_high) {
-	avl_iterator_t out = {
-		.cur = NULL,
-		.root = root,
-		.low_to_high = low_to_high
-	};
-
 	if (root->root_node == NULL)
-		return out;
+		return (avl_iterator_t){0};
 
 	avl_node_t *min = avl_minmax_impl(root, AVL_MIN);
 	avl_node_t *max = avl_minmax_impl(root, AVL_MAX);
@@ -308,12 +296,15 @@ avl_iterator_t avl_get_iterator_impl(avl_root_t *root, avl_node_t *lower_bound, 
 		|| (lower_bound != NULL && compare_nodes(root, upper, lower_bound) < 0)
 		|| (lower_bound != NULL && compare_nodes(root, lower_bound, max)   > 0)
 		|| (upper_bound != NULL && compare_nodes(root, upper_bound, min)   < 0)) {
-		return out;
+		return (avl_iterator_t){0};
 	}
 
-	out.cur = low_to_high ? lower : upper;
-	out.end = low_to_high ? upper : lower;
-	return out;
+	return (avl_iterator_t){
+		.cur = low_to_high ? lower : upper,
+		.end = low_to_high ? upper : lower,
+		.root = root,
+		.low_to_high = low_to_high
+	};
 }
 
 /* get next node from iterator */
