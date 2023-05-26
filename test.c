@@ -14,11 +14,14 @@
 #define TEST_FAIL_IF_NOT(cond) \
 	{ if (!(cond)) return "ERROR on line " xstr(__LINE__) " in " __FILE__; }
 
-#define NODES_COUNT 500000
-#define TEST_REPEAT 10
+#define NODES_COUNT	500000
+#define TEST_REPEAT	10
 
-#define GREEN(str) "\033[1;32m"str"\033[0m"
-#define RED(str) "\033[1;91m"str"\033[0m"
+#define THUMBSUP	"\xf0\x9f\x91\x8d"
+#define SADFACE		"\xf0\x9f\x98\xa5"
+
+#define GREEN(str)	"\033[1;32m"str"\033[0m"
+#define RED(str)	"\033[1;91m"str"\033[0m"
 
 /* --- TYPEDEFS ------------------------------------- */
 
@@ -270,7 +273,7 @@ int run_test(testctx_t *ctx, outer_root_t *root, outer_t nodes[]) {
 		printf("%c%-25s%2d/%d", lasterr ? '\n' : '\r', ctx->msg, i, ctx->repeat);
 		fflush(stdout);
 		lasterr = 0;
-		if (strerr = ctx->test(root, nodes)) {
+		if ((strerr = ctx->test(root, nodes)) != NULL) {
 			printf(RED("\t%s"), strerr);
 			++err_counter;
 			lasterr = 1;
@@ -309,11 +312,11 @@ int main(void) {
 		err_counter += run_test(&ctxs[i], &root, nodes);
 
 	free(nodes);
-	if (!err_counter) {
-		printf("\nAll tests passed successfully! \xf0\x9f\x91\x8d\n"); // thumbs-up emoji
+	if (err_counter == 0) {
+		printf("\nAll tests passed successfully! " THUMBSUP "\n");
 		return 0;
 	} else {
-		printf("\n%d tests failed \xf0\x9f\x98\xa5\n", err_counter); // sad emoji
+		printf("\n%d tests failed " SADFACE "\n", err_counter);
 		return 1;
 	}
 }

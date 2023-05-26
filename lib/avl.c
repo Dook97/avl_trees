@@ -138,10 +138,10 @@ static void balance(avl_node_t *node, avl_root_t *root, bool from_left, bool aft
 			return;
 
 		avl_node_t *father = node->father;
-		bool new_left = (father != NULL && node == father->sons[left]);
+		bool new_from_left = (father != NULL && node == father->sons[left]);
 
 		if (ABS(node->sign) == 2) {
-			avl_node_t **son = &node->sons[control];
+			avl_node_t **son = control ? &node->sons[right] : &node->sons[left];
 			int prevsign = (*son)->sign;
 			if (ABS(node->sign + (*son)->sign) == 1)
 				rotate(son, control);
@@ -150,7 +150,7 @@ static void balance(avl_node_t *node, avl_root_t *root, bool from_left, bool aft
 				return;
 		}
 
-		from_left = new_left;
+		from_left = new_from_left;
 		node = father;
 	}
 }
