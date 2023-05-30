@@ -20,8 +20,8 @@
 #define THUMBSUP	"\xf0\x9f\x91\x8d"
 #define SADFACE		"\xf0\x9f\x98\xa5"
 
-#define GREEN(str)	"\033[1;32m"str"\033[0m"
-#define RED(str)	"\033[1;91m"str"\033[0m"
+#define GREEN(str)	"\033[1;32m" str "\033[0m"
+#define RED(str)	"\033[1;91m" str "\033[0m"
 
 /* --- TYPEDEFS ------------------------------------- */
 
