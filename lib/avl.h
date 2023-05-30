@@ -107,8 +107,8 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 #define AVL_INVOKE_FUNCTION(root, func_ptr, ...) \
 	({ \
 		avl_node_t *avl_func_output__ = (func_ptr)(__VA_ARGS__); \
-		__auto_type safe_root__ = (root); \
-		(__typeof__(*safe_root__->node_typeinfo__) *)(AVL_UPCAST(avl_func_output__, safe_root__->AVL_ROOT_EMBED.offset)); \
+		__auto_type isafe_root__ = (root); \
+		(__typeof__(*isafe_root__->node_typeinfo__) *)(AVL_UPCAST(avl_func_output__, isafe_root__->AVL_ROOT_EMBED.offset)); \
 	})
 
 /* --- USER FACING MACROS ------------------------------------- */
