@@ -53,8 +53,8 @@ typedef struct {
 
 ### Define a comparator function on `dict_item_t`
 
-Its signature has to be `int (*)(const void *, const void *)` and it has to
-return:
+Its signature has to be `int (*)(const void *, const void *)`, its arguments
+can be safely expected to be non-null and it has to return:
 
 ```
 <0 if item1 < item2
@@ -62,11 +62,12 @@ return:
 >0 if item1 > item2
 ```
 
-An example comparator function assuming `TKey` is synonymous with `int`:
+An example comparator function assuming `TKey` is a numeric type:
 
 ```c
 int dict_compare(const void *item1, const void *item2) {
-    int key1 = ((dict_item_t *)item1)->key, key2 = ((dict_item_t *)item2)->key;
+    assert(item1 != NULL && item2 != NULL);
+    TKey key1 = ((dict_item_t *)item1)->key, key2 = ((dict_item_t *)item2)->key;
     return (key1 == key2) ? 0
                           : (key1 < key2) ? -1 : 1;
 }
@@ -90,6 +91,18 @@ The arguments to this macro are:
 Internally this is just a typedef, so it's ok to use in header files.
 
 ## Interface
+
+note: Where applicable the library functions return *typed pointers*, not `void *`
+as might be expected. This has the nice consequence of the user not having to
+explicitly typecast, like:
+
+```c
+// find an item in the dictionary and directly change its value
+avl_find(&dict, &dummy)->value = 42;
+
+// this is unnecessary
+((dict_item_t *)avl_find(&dict, &dummy))->value = 42;
+```
 
 ### Creating new dictionary instances
 
@@ -116,8 +129,8 @@ dict_item_t *replaced = avl_insert(&dict, &item);
 `avl_insert` places the item inside the dictionary **potentially replacing**
 any item defined equal by the comparator function.
 
-It returns a typed pointer - in this case `dict_item_t *` - to the
-replaced item or `NULL` if no item was replaced.
+It returns a typed pointer to the replaced item or `NULL` if no item was
+replaced.
 
 ### Find
 

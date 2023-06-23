@@ -14,13 +14,20 @@ typedef struct avl_node {
 	int sign; // right subtree depth - left subtree depth
 } avl_node_t;
 
-/* a comparator function intended for structs wrapping avl_node
+/* A comparator function intended for structs wrapping avl_node. Arguments are
+ * expected to be non-null.
  *
  * returns <0 if item1 < item2
  * returns  0 if item1 = item2
  * returns >0 if item1 > item2
  */
+#if defined(__clang__)
+typedef int (*avl_comparator_t)(const void * _Nonnull item1, const void * _Nonnull item2);
+#elif defined(__GNUC__)
+typedef int (*avl_comparator_t)(const void *item1, const void *item2) __attribute__((nonnull));
+#else
 typedef int (*avl_comparator_t)(const void *item1, const void *item2);
+#endif
 
 /* internal structure representing root of the AVL tree */
 typedef struct {

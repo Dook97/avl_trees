@@ -26,7 +26,7 @@
 
 typedef struct {
 	long num;
-	avl_node_t avl_node;
+	avl_node_t dict_data;
 } dict_item_t;
 
 AVL_DEFINE_ROOT(dict_t, dict_item_t);
@@ -301,7 +301,7 @@ int run_test(testctx_t *ctx, dict_t *root, dict_item_t nodes[]) {
 
 int main(void) {
 	srandom(time(NULL));
-	dict_t root = AVL_NEW(dict_t, avl_node, comparator);
+	dict_t root = AVL_NEW(dict_t, dict_data, comparator);
 	dict_item_t *nodes = safe_malloc(NODES_COUNT * sizeof(dict_item_t));
 
 	testctx_t ctxs[] = {
@@ -317,7 +317,7 @@ int main(void) {
 	};
 
 	int err_counter = 0;
-	for (int i = 0; i < arr_len(ctxs); ++i)
+	for (uint i = 0; i < arr_len(ctxs); ++i)
 		err_counter += run_test(&ctxs[i], &root, nodes);
 
 	free(nodes);
