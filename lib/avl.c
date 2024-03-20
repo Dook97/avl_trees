@@ -24,7 +24,7 @@ enum avl_son_index { left, right };
  * returns >0 if node1 > node2
  */
 static int compare_nodes(avl_root_t *root, avl_node_t *node1, avl_node_t *node2) {
-	return root->comparator(AVL_UPCAST(node1, root->offset), AVL_UPCAST(node2, root->offset));
+	return root->cmp(AVL_UPCAST(node1, root->offset), AVL_UPCAST(node2, root->offset));
 }
 
 /* choose next node on the path to node with given key according to BST invariant */

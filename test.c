@@ -1,9 +1,10 @@
-#include "avl.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <limits.h>
 #include <string.h>
+
+#include "avl.h"
 
 /* --- MACROS --------------------------------------- */
 
@@ -11,7 +12,7 @@
 #define xstr(a) str(a)
 #define str(a) #a
 #define TEST_FAIL_IF(cond) \
-	{ if ((cond)) return "ERROR on line " xstr(__LINE__) " in " __FILE__; }
+	do { if ((cond)) return "ERROR on line " xstr(__LINE__) " in " __FILE__; } while (0)
 
 #define NODES_COUNT	500000
 #define TEST_REPEAT	10
@@ -205,7 +206,7 @@ char *test_iterator(dict_t *root, dict_item_t nodes[]) {
 	TEST_FAIL_IF(remove_all(root, nodes) != NULL);
 	TEST_FAIL_IF(insert_random(root, nodes) != NULL);
 
-	size_t offset = root->AVL_ROOT_EMBED.offset;
+	size_t offset = root->avl_root_embed.offset;
 
 	avl_iterator_t iter = avl_get_iterator(root, &nodes[0], &nodes[1]);
 
@@ -317,7 +318,7 @@ int main(void) {
 	};
 
 	int err_counter = 0;
-	for (uint i = 0; i < arr_len(ctxs); ++i)
+	for (size_t i = 0; i < arr_len(ctxs); ++i)
 		err_counter += run_test(&ctxs[i], &root, nodes);
 
 	free(nodes);

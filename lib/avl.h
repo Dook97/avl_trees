@@ -32,7 +32,7 @@ typedef int (*avl_comparator_t)(const void *item1, const void *item2);
 /* internal structure representing root of the AVL tree */
 typedef struct {
 	avl_node_t *root_node;
-	avl_comparator_t comparator;
+	avl_comparator_t cmp;
 	size_t offset; // offset from avl_node to its wrapper struct
 } avl_root_t;
 
@@ -90,32 +90,31 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 #define AVL_GET_ARGS_COUNT(...) (sizeof((int[]){__VA_ARGS__}) / sizeof(int))
 
 /* get the in-memory offset of avl_node_t member from the beggining of it's wrapping struct */
-#define AVL_GET_MEMBER_OFFSET(wrapper_type, avl_member_name) \
+#define AVL_MEMBER_OFFSET(wrapper_type, avl_member_name) \
 	((size_t)&((wrapper_type *)0)->avl_member_name)
-
-/* name under which avl_root will be embedded inside the user defined root struct */
-#define AVL_ROOT_EMBED EMBED_avl_root_INSTANCE__
 
 /* upcast from struct member to its wrapper struct */
 #define AVL_UPCAST(ptr_to_avl_member, offset) \
 	({ \
-		avl_node_t *safe_ptr__ = (ptr_to_avl_member); \
-		(safe_ptr__ == NULL) ? NULL : ((void *)safe_ptr__ - (offset)); \
+		avl_node_t *AVL_UPCAST_safe_ptr__ = (ptr_to_avl_member); \
+		(AVL_UPCAST_safe_ptr__ == NULL) ? NULL : ((void *)AVL_UPCAST_safe_ptr__ - (offset)); \
 	})
 
 /* downcast from wrapper struct to its avl_node_t member */
 #define AVL_DOWNCAST(ptr_to_wrapper, offset) \
 	({ \
-		void *safe_ptr__ = (ptr_to_wrapper); \
-		(safe_ptr__ == NULL) ? NULL : ((void *)safe_ptr__ + (offset)); \
+		void *AVL_DOWNCAST_safe_ptr__ = (ptr_to_wrapper); \
+		(AVL_DOWNCAST_safe_ptr__ == NULL) ? NULL : ((void *)AVL_DOWNCAST_safe_ptr__ + (offset)); \
 	})
 
 /* calls function with return type avl_node_t* and yields its return value upcasted to the wrapper type */
-#define AVL_INVOKE_FUNCTION(root, func_ptr, ...) \
-	({ \
-		avl_node_t *avl_func_output__ = (func_ptr)(__VA_ARGS__); \
-		__auto_type isafe_root__ = (root); \
-		(__typeof__(*isafe_root__->node_typeinfo__) *)(AVL_UPCAST(avl_func_output__, isafe_root__->AVL_ROOT_EMBED.offset)); \
+#define AVL_INVOKE_FUNCTION(root, func_ptr, ...)                                              \
+	({                                                                                    \
+		avl_node_t *AVL_INVOKE_FUNCTION_avl_func_output__ = (func_ptr)(__VA_ARGS__);  \
+		__auto_type AVL_INVOKE_FUNCTION_safe_root__ = (root);                         \
+		(__typeof__(*AVL_INVOKE_FUNCTION_safe_root__->node_typeinfo__) *)(AVL_UPCAST( \
+			AVL_INVOKE_FUNCTION_avl_func_output__,                                \
+			AVL_INVOKE_FUNCTION_safe_root__->avl_root_embed.offset));             \
 	})
 
 /* --- USER FACING MACROS ------------------------------------- */
@@ -123,88 +122,112 @@ avl_node_t *avl_peek_impl(avl_iterator_t *iterator);
 /* a shortcut to help user define his root struct */
 #define AVL_DEFINE_ROOT(root_type_name, node_type_name) \
 	typedef struct { \
-		avl_root_t AVL_ROOT_EMBED; \
+		avl_root_t avl_root_embed; \
 		node_type_name node_typeinfo__[0]; \
 	} root_type_name
 
 /* macro to initialize the user defined root struct */
-#define AVL_NEW(root_type_name, avl_member_name, comparator_) \
-	(root_type_name){ \
-		.AVL_ROOT_EMBED = (avl_root_t){ \
-			.root_node  = NULL, \
-			.comparator = (comparator_), \
-			.offset = AVL_GET_MEMBER_OFFSET(__typeof__(*((root_type_name *)0)->node_typeinfo__), avl_member_name) \
-		} \
+#define AVL_NEW(root_type_name, avl_member_name, comparator)                         \
+	(root_type_name) {                                                           \
+		.avl_root_embed = (avl_root_t) {                                     \
+			.root_node = NULL, .cmp = (comparator),                      \
+			.offset = AVL_MEMBER_OFFSET(                                 \
+				__typeof__(*((root_type_name *)0)->node_typeinfo__), \
+				avl_member_name)                                     \
+		}                                                                    \
 	}
 
 /* public wrappers around internal functions which deal with type conversions so that user doesn't have to */
-#define avl_find(root, item) \
-	({ \
-		__auto_type safe_root__ = (root); \
-		avl_node_t *safe_node__ = AVL_DOWNCAST((item), safe_root__->AVL_ROOT_EMBED.offset); \
-		AVL_INVOKE_FUNCTION(safe_root__, avl_find_impl, safe_node__, &safe_root__->AVL_ROOT_EMBED); \
+
+#define avl_find(root, item)                                                                   \
+	({                                                                                     \
+		__auto_type avl_find_safe_root__ = (root);                                     \
+		avl_node_t *avl_find_safe_node__ =                                             \
+			AVL_DOWNCAST((item), avl_find_safe_root__->avl_root_embed.offset);     \
+		AVL_INVOKE_FUNCTION(avl_find_safe_root__, avl_find_impl, avl_find_safe_node__, \
+				    &avl_find_safe_root__->avl_root_embed);                    \
 	})
 
-#define avl_insert(root, item) \
-	({ \
-		__auto_type safe_root__ = (root); \
-		avl_node_t *safe_node__ = AVL_DOWNCAST((item), safe_root__->AVL_ROOT_EMBED.offset); \
-		AVL_INVOKE_FUNCTION(safe_root__, avl_insert_impl, safe_node__, &safe_root__->AVL_ROOT_EMBED); \
+#define avl_insert(root, item)                                                               \
+	({                                                                                   \
+		__auto_type avl_insert_safe_root__ = (root);                                 \
+		avl_node_t *avl_insert_safe_node__ =                                         \
+			AVL_DOWNCAST((item), avl_insert_safe_root__->avl_root_embed.offset); \
+		AVL_INVOKE_FUNCTION(avl_insert_safe_root__, avl_insert_impl,                 \
+				    avl_insert_safe_node__,                                  \
+				    &avl_insert_safe_root__->avl_root_embed);                \
 	})
 
-#define avl_delete(root, item) \
-	({ \
-		__auto_type safe_root__ = (root); \
-		avl_node_t *safe_node__ = AVL_DOWNCAST((item), safe_root__->AVL_ROOT_EMBED.offset); \
-		AVL_INVOKE_FUNCTION(safe_root__, avl_delete_impl, safe_node__, &safe_root__->AVL_ROOT_EMBED); \
+#define avl_delete(root, item)                                                               \
+	({                                                                                   \
+		__auto_type avl_delete_safe_root__ = (root);                                 \
+		avl_node_t *avl_delete_safe_node__ =                                         \
+			AVL_DOWNCAST((item), avl_delete_safe_root__->avl_root_embed.offset); \
+		AVL_INVOKE_FUNCTION(avl_delete_safe_root__, avl_delete_impl,                 \
+				    avl_delete_safe_node__,                                  \
+				    &avl_delete_safe_root__->avl_root_embed);                \
 	})
 
-#define avl_contains(root, item) \
-	({ \
-		__auto_type safe_root__ = (root); \
-		avl_node_t *safe_node__ = AVL_DOWNCAST((item), safe_root__->AVL_ROOT_EMBED.offset); \
-		avl_find_impl(safe_node__, &safe_root__->AVL_ROOT_EMBED) != NULL; \
+#define avl_contains(root, item)                                                                   \
+	({                                                                                         \
+		__auto_type avl_contains_safe_root__ = (root);                                     \
+		avl_node_t *avl_contains_safe_node__ =                                             \
+			AVL_DOWNCAST((item), avl_contains_safe_root__->avl_root_embed.offset);     \
+		avl_find_impl(avl_contains_safe_node__, &avl_contains_safe_root__->avl_root_embed) \
+			!= NULL;                                                                   \
 	})
 
-#define avl_next(root, item) \
-	({ \
-		__auto_type safe_root__ = (root); \
-		avl_node_t *safe_node__ = AVL_DOWNCAST((item), safe_root__->AVL_ROOT_EMBED.offset); \
-		AVL_INVOKE_FUNCTION(safe_root__, avl_prevnext_impl, &safe_root__->AVL_ROOT_EMBED, safe_node__, AVL_NEXT); \
+#define avl_next(root, item)                                                                     \
+	({                                                                                       \
+		__auto_type avl_next_safe_root__ = (root);                                       \
+		avl_node_t *avl_next_safe_node__ =                                               \
+			AVL_DOWNCAST((item), avl_next_safe_root__->avl_root_embed.offset);       \
+		AVL_INVOKE_FUNCTION(avl_next_safe_root__, avl_prevnext_impl,                     \
+				    &avl_next_safe_root__->avl_root_embed, avl_next_safe_node__, \
+				    AVL_NEXT);                                                   \
 	})
 
-#define avl_prev(root, item) \
-	({ \
-		__auto_type safe_root__ = (root); \
-		avl_node_t *safe_node__ = AVL_DOWNCAST((item), safe_root__->AVL_ROOT_EMBED.offset); \
-		AVL_INVOKE_FUNCTION(safe_root__, avl_prevnext_impl, &safe_root__->AVL_ROOT_EMBED, safe_node__, AVL_PREV); \
+#define avl_prev(root, item)                                                                     \
+	({                                                                                       \
+		__auto_type avl_prev_safe_root__ = (root);                                       \
+		avl_node_t *avl_prev_safe_node__ =                                               \
+			AVL_DOWNCAST((item), avl_prev_safe_root__->avl_root_embed.offset);       \
+		AVL_INVOKE_FUNCTION(avl_prev_safe_root__, avl_prevnext_impl,                     \
+				    &avl_prev_safe_root__->avl_root_embed, avl_prev_safe_node__, \
+				    AVL_PREV);                                                   \
 	})
 
-#define avl_min(root) \
-	({ \
-		__auto_type safe_root__ = (root); \
-		AVL_INVOKE_FUNCTION(safe_root__, avl_minmax_impl, &safe_root__->AVL_ROOT_EMBED, AVL_MIN); \
+#define avl_min(root)                                                               \
+	({                                                                          \
+		__auto_type avl_min_safe_root__ = (root);                           \
+		AVL_INVOKE_FUNCTION(avl_min_safe_root__, avl_minmax_impl,           \
+				    &avl_min_safe_root__->avl_root_embed, AVL_MIN); \
 	})
 
-#define avl_max(root) \
-	({ \
-		__auto_type safe_root__ = (root); \
-		AVL_INVOKE_FUNCTION(safe_root__, avl_minmax_impl, &safe_root__->AVL_ROOT_EMBED, AVL_MAX); \
+#define avl_max(root)                                                               \
+	({                                                                          \
+		__auto_type avl_max_safe_root__ = (root);                           \
+		AVL_INVOKE_FUNCTION(avl_max_safe_root__, avl_minmax_impl,           \
+				    &avl_max_safe_root__->avl_root_embed, AVL_MAX); \
 	})
 
-#define avl_get_iterator(root, lower_bound, upper_bound, ...) \
-	({ \
-		bool low_to_high__ = (AVL_GET_ARGS_COUNT(__VA_ARGS__ ) == 1) ? __VA_ARGS__ : AVL_ASCENDING; \
-		__auto_type safe_root__ = (root); \
-		avl_node_t *safe_lower__ = AVL_DOWNCAST((lower_bound), safe_root__->AVL_ROOT_EMBED.offset); \
-		avl_node_t *safe_upper__ = AVL_DOWNCAST((upper_bound), safe_root__->AVL_ROOT_EMBED.offset); \
-		avl_get_iterator_impl(&safe_root__->AVL_ROOT_EMBED, safe_lower__, safe_upper__, low_to_high__); \
+#define avl_get_iterator(root, lower_bound, upper_bound, ...)                                 \
+	({                                                                                    \
+		bool avl_get_iterator_low_to_high__ =                                         \
+			(AVL_GET_ARGS_COUNT(__VA_ARGS__) == 1) ? __VA_ARGS__ : AVL_ASCENDING; \
+		__auto_type avl_get_iterator_safe_root__ = (root);                            \
+		avl_node_t *avl_get_iterator_safe_lower__ = AVL_DOWNCAST(                     \
+			(lower_bound), avl_get_iterator_safe_root__->avl_root_embed.offset);  \
+		avl_node_t *avl_get_iterator_safe_upper__ = AVL_DOWNCAST(                     \
+			(upper_bound), avl_get_iterator_safe_root__->avl_root_embed.offset);  \
+		avl_get_iterator_impl(&avl_get_iterator_safe_root__->avl_root_embed,          \
+				      avl_get_iterator_safe_lower__,                          \
+				      avl_get_iterator_safe_upper__,                          \
+				      avl_get_iterator_low_to_high__);                        \
 	})
 
-#define avl_advance(root, iterator) \
-	AVL_INVOKE_FUNCTION((root), avl_advance_impl, (iterator))
+#define avl_advance(root, iterator) AVL_INVOKE_FUNCTION((root), avl_advance_impl, (iterator))
 
-#define avl_peek(root, iterator) \
-	AVL_INVOKE_FUNCTION((root), avl_peek_impl, (iterator))
+#define avl_peek(root, iterator) AVL_INVOKE_FUNCTION((root), avl_peek_impl, (iterator))
 
 #endif
