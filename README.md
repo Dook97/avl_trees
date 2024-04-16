@@ -137,8 +137,7 @@ replaced.
 To find an item in `dict_t dict` use `avl_find`
 
 You need to create a dictionary item instance which is equal to the item you're
-looking for as per your comparator function. That means setting its relevant
-members.
+looking for as per your comparator function.
 
 ```c
 dict_item_t dummy = { .key = 13 };
